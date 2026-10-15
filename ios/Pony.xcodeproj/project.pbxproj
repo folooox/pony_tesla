@@ -1,0 +1,41 @@
+// !$*UTF8*$!
+{
+    archiveVersion = 1;
+    classes = {};
+    objectVersion = 56;
+    objects = {
+        A50000000000000000000001 = {isa = XCLocalSwiftPackageReference; relativePath = PonyCore;};
+        A50000000000000000000002 = {isa = XCSwiftPackageProductDependency; package = A50000000000000000000001; productName = PonyCore;};
+        A50000000000000000000003 = {isa = PBXBuildFile; productRef = A50000000000000000000002;};
+        A10000000000000000000001 = {isa = PBXProject; attributes = {BuildIndependentTargetsInParallel = YES; LastUpgradeCheck = 2700; TargetAttributes = {A10000000000000000000002 = {CreatedOnToolsVersion = 27.0;};};}; buildConfigurationList = A10000000000000000000005; compatibilityVersion = "Xcode 14.0"; developmentRegion = "zh-Hans"; hasScannedForEncodings = 0; knownRegions = ("zh-Hans", en, Base); mainGroup = A10000000000000000000003; productRefGroup = A10000000000000000000004; projectDirPath = ""; projectRoot = ""; packageReferences = (A50000000000000000000001); targets = (A10000000000000000000002);};
+        A10000000000000000000002 = {isa = PBXNativeTarget; buildConfigurationList = A10000000000000000000006; buildPhases = (A10000000000000000000007, A10000000000000000000008, A10000000000000000000009); buildRules = (); dependencies = (); name = Pony; productName = Pony; packageProductDependencies = (A50000000000000000000002); productReference = A1000000000000000000000A; productType = "com.apple.product-type.application";};
+        A10000000000000000000003 = {isa = PBXGroup; children = (A1000000000000000000000B, A10000000000000000000004); sourceTree = "<group>";};
+        A10000000000000000000004 = {isa = PBXGroup; children = (A1000000000000000000000A); name = Products; sourceTree = "<group>";};
+        A1000000000000000000000A = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Pony.app; sourceTree = BUILT_PRODUCTS_DIR;};
+        A1000000000000000000000B = {isa = PBXGroup; children = (A20000000000000000000001,A20000000000000000000002,A20000000000000000000003,A20000000000000000000004,A20000000000000000000005,A20000000000000000000006,A20000000000000000000007); path = Pony; sourceTree = "<group>";};
+        A20000000000000000000001 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PonyApp.swift; sourceTree = "<group>";};
+        A20000000000000000000002 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStore.swift; sourceTree = "<group>";};
+        A20000000000000000000003 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>";};
+        A20000000000000000000004 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VehicleView.swift; sourceTree = "<group>";};
+        A20000000000000000000005 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripViews.swift; sourceTree = "<group>";};
+        A20000000000000000000006 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChargingView.swift; sourceTree = "<group>";};
+        A20000000000000000000007 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>";};
+        A30000000000000000000001 = {isa = PBXBuildFile; fileRef = A20000000000000000000001;};
+        A30000000000000000000002 = {isa = PBXBuildFile; fileRef = A20000000000000000000002;};
+        A30000000000000000000003 = {isa = PBXBuildFile; fileRef = A20000000000000000000003;};
+        A30000000000000000000004 = {isa = PBXBuildFile; fileRef = A20000000000000000000004;};
+        A30000000000000000000005 = {isa = PBXBuildFile; fileRef = A20000000000000000000005;};
+        A30000000000000000000006 = {isa = PBXBuildFile; fileRef = A20000000000000000000006;};
+        A30000000000000000000007 = {isa = PBXBuildFile; fileRef = A20000000000000000000007;};
+        A10000000000000000000007 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A30000000000000000000001,A30000000000000000000002,A30000000000000000000003,A30000000000000000000004,A30000000000000000000005,A30000000000000000000006,A30000000000000000000007); runOnlyForDeploymentPostprocessing = 0;};
+        A10000000000000000000008 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (A50000000000000000000003); runOnlyForDeploymentPostprocessing = 0;};
+        A10000000000000000000009 = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0;};
+        A10000000000000000000005 = {isa = XCConfigurationList; buildConfigurations = (A40000000000000000000001,A40000000000000000000002); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;};
+        A10000000000000000000006 = {isa = XCConfigurationList; buildConfigurations = (A40000000000000000000003,A40000000000000000000004); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;};
+        A40000000000000000000001 = {isa = XCBuildConfiguration; name = Debug; buildSettings = {CLANG_ENABLE_MODULES = YES; DEBUG_INFORMATION_FORMAT = dwarf; ENABLE_TESTABILITY = YES; IPHONEOS_DEPLOYMENT_TARGET = 27.0; SDKROOT = iphoneos; SWIFT_VERSION = 6.0; SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)"; SWIFT_OPTIMIZATION_LEVEL = "-Onone";};};
+        A40000000000000000000002 = {isa = XCBuildConfiguration; name = Release; buildSettings = {CLANG_ENABLE_MODULES = YES; DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym"; IPHONEOS_DEPLOYMENT_TARGET = 27.0; SDKROOT = iphoneos; SWIFT_VERSION = 6.0; SWIFT_COMPILATION_MODE = wholemodule; SWIFT_OPTIMIZATION_LEVEL = "-O";};};
+        A40000000000000000000003 = {isa = XCBuildConfiguration; name = Debug; buildSettings = {CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; ENABLE_PREVIEWS = YES; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_CFBundleDisplayName = Pony; INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES; INFOPLIST_KEY_UILaunchScreen_Generation = YES; INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"; LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks"); MARKETING_VERSION = 0.1; PRODUCT_BUNDLE_IDENTIFIER = party.ponypro.Pony; PRODUCT_NAME = "$(TARGET_NAME)"; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SUPPORTS_MACCATALYST = NO; SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor; SWIFT_EMIT_LOC_STRINGS = YES; TARGETED_DEVICE_FAMILY = "1,2";};};
+        A40000000000000000000004 = {isa = XCBuildConfiguration; name = Release; buildSettings = {CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; ENABLE_PREVIEWS = YES; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_CFBundleDisplayName = Pony; INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES; INFOPLIST_KEY_UILaunchScreen_Generation = YES; INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"; LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks"); MARKETING_VERSION = 0.1; PRODUCT_BUNDLE_IDENTIFIER = party.ponypro.Pony; PRODUCT_NAME = "$(TARGET_NAME)"; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SUPPORTS_MACCATALYST = NO; SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor; SWIFT_EMIT_LOC_STRINGS = YES; TARGETED_DEVICE_FAMILY = "1,2";};};
+    };
+    rootObject = A10000000000000000000001;
+}

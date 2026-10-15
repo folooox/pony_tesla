@@ -1,0 +1,28 @@
+[Unit]
+Description=Pony Tesla account connection test
+Wants=network-online.target docker.service
+After=network-online.target docker.service
+
+[Service]
+Type=simple
+User=pony-tesla
+Group=pony-tesla
+WorkingDirectory=/opt/pony-tesla
+EnvironmentFile=/opt/pony-tesla/.env
+ExecStart=/opt/pony-tesla/bin/node /opt/pony-tesla/backend/server.mjs
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/opt/pony-tesla/.private
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=
+
+[Install]
+WantedBy=multi-user.target

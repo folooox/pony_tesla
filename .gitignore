@@ -1,0 +1,31 @@
+.env
+.env.*
+!.env.example
+.private/
+node_modules/
+coverage/
+artifacts/test-results/
+artifacts/*-source.zip
+ios/build/
+ios/DerivedData/
+**/xcuserdata/
+*.log
+
+
+**/.build/
+**/.swiftpm/
+
+# Local macOS and build diagnostics
+.DS_Store
+artifacts/mac-build/
+*.xcresult
+*.xcarchive
+# Runtime storage and private key material
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.sqlite3
+*.db
+*.pem
+*.p12
+*.mobileprovision

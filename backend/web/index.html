@@ -1,0 +1,9 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pony Tesla · 连接测试</title><link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script></head>
+<body><main><p>PONY TESLA</p><h1>连接你的 Tesla</h1><p>使用普通车主账号在 Tesla 官方页面登录并授权。</p>
+<section><h2>1 · 应用准备情况</h2><pre id="status">正在检查…</pre><form method="post" action="/oauth/start"><button id="connect" disabled>前往 Tesla 登录并授权</button></form></section>
+<section><h2>接入进度</h2><ul id="connection-steps" aria-live="polite"><li>正在检查各阶段…</li></ul><p>域名可访问、应用已注册、账号已授权和车辆正在采集是不同阶段。</p></section>
+<section><h2>2 · 选择车辆</h2><button id="list" disabled>获取授权车辆</button><select id="vehicles" aria-label="选择车辆"></select></section>
+<section><h2>3 · 读取一次车况</h2><p>检查电量、充电、温度、车辆状态和位置。车辆不在线时，请先通过车辆或官方 App 使其在线。本测试不发送控车指令。</p><button id="probe" disabled>读取车况</button><pre id="result">尚未读取真实车辆数据。</pre></section>
+<section><h2>4 · 服务器历史</h2><p id="history-status">历史存储状态待检查。</p><p>仅保留最近 168 小时已完成的行程。真实遥测尚未接入时，列表为空。</p><button id="history-refresh">读取历史</button><select id="trips" aria-label="选择历史行程"></select><button id="trip-open" disabled>查看行程</button><a id="trip-export" hidden>下载 CSV</a><pre id="trip-result" aria-live="polite">尚未查询服务器历史。</pre></section>
+<p>这是单车主连接测试工具。成功读取车况后，还需要另行验证持续行程遥测。</p></main></body></html>
