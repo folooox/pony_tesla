@@ -65,9 +65,12 @@ struct ChargingView: View {
     @ViewBuilder private func chargeButtons(_ vehicle: VehicleSnapshot) -> some View {
         Button(vehicle.charging ? "暂停充电" : "开始充电", systemImage: vehicle.charging ? "pause" : "bolt") { confirming = true }
             .buttonStyle(.glassProminent).controlSize(.large).disabled(!store.canControl)
-        NavigationLink("充电预约", systemImage: "clock") {
+        NavigationLink {
             PreviewInfoView(title: "充电预约", message: "预约服务尚未接入。此版本不保存或执行预约，避免将草稿误认为已下发。")
-        }.buttonStyle(.glass).controlSize(.large)
+        } label: {
+            Label("充电预约", systemImage: "clock")
+        }
+        .buttonStyle(.glass).controlSize(.large)
     }
     private var chargingHistory: some View {
         GroupBox("最近充电") {

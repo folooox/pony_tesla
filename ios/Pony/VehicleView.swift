@@ -8,6 +8,7 @@ struct VehicleView: View {
     @State private var allControls = false
     @State private var pending: QuickControl?
     @State private var confirming = false
+    @State private var bodyDemo = false
 
     var body: some View {
         DashboardGate { vehicle in
@@ -31,7 +32,9 @@ struct VehicleView: View {
                     NavigationLink { LocationView() } label: {
                         GroupBox { LabeledContent("车辆位置", value: vehicle.coordinate == nil ? "暂无位置" : "查看地图") }
                     }.buttonStyle(.plain)
-                    NavigationLink("车况与设置", systemImage: "slider.horizontal.3") { VehicleSettingsView() }
+                    NavigationLink { VehicleSettingsView() } label: {
+                        Label("车况与设置", systemImage: "slider.horizontal.3")
+                    }
                         .buttonStyle(.glass)
                 }.padding()
             }
@@ -39,11 +42,13 @@ struct VehicleView: View {
         }
         .background(Color(uiColor: .systemGroupedBackground))
         .navigationTitle(store.vehicle?.name ?? "车辆")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarPinnedTrailing) {
                 Menu("车辆操作", systemImage: "ellipsis") {
                     Button("编辑快捷控制", systemImage: "slider.horizontal.3") { editing = true }
                     Button("全部控制", systemImage: "square.grid.2x2") { allControls = true }
+                    Button("车况演示", systemImage: "cube.transparent") { bodyDemo = true }
                     Button("刷新状态", systemImage: "arrow.clockwise") { Task { await store.refresh() } }
                         .disabled(store.loading || store.commandInFlight)
                 }
@@ -51,6 +56,7 @@ struct VehicleView: View {
         }
         .sheet(isPresented: $editing) { ControlEditor() }
         .sheet(isPresented: $allControls) { AllControlsView() }
+        .sheet(isPresented: $bodyDemo) { VehicleBodyDemoView() }
         .confirmationDialog(pending?.title ?? "车辆操作", isPresented: $confirming, titleVisibility: .visible) {
             Button("模拟\(pending?.title ?? "操作")") {
                 if let pending { Task { await store.execute(.quick(pending)) } }
@@ -62,10 +68,7 @@ struct VehicleView: View {
         VStack(spacing: 20) {
             Label(vehicle.locked.map { $0 ? "已锁车" : "未锁车" } ?? "锁车状态未知", systemImage: vehicle.locked == false ? "lock.open" : "lock")
                 .font(.subheadline).foregroundStyle(.secondary)
-            Image(systemName: "car.side.fill").resizable().scaledToFit().foregroundStyle(.secondary)
-                .frame(maxWidth: 280, minHeight: 100, maxHeight: 160).padding(.vertical)
-                .accessibilityLabel("车辆造型占位图")
-            Text("2022 · 后轮驱动").font(.subheadline).foregroundStyle(.secondary)
+            VehicleStage(vehicle: vehicle)
             MetricRow(values: [("当前电量", Display.number(vehicle.battery), "%"), ("预计续航", Display.number(vehicle.rangeKM), "km")])
             Text("数据时间：\(vehicle.fetchedAt.formatted(date: .omitted, time: .standard))")
                 .font(.caption).foregroundStyle(.secondary)
@@ -161,6 +164,10 @@ struct ClimateView: View {
     var body: some View {
         Form {
             Section { DemoNotice(); StatusNotice() }
+            if let vehicle = store.vehicle {
+                Section { VehicleStage(vehicle: vehicle, initialCamera: .cabin) }
+                    .listRowInsets(EdgeInsets(top: 12, leading: 12, bottom: 12, trailing: 12))
+            }
             Section("温度") {
                 LabeledContent("车辆设定", value: "\(Display.number(store.vehicle?.targetTemperature, digits: 1)) °C")
                 LabeledContent("待应用温度", value: "\(Display.number(temperature, digits: 1)) °C")
@@ -174,7 +181,8 @@ struct ClimateView: View {
             Section {
                 Button("应用到模拟车辆") { Task { await store.execute(.setClimate(temperature: temperature, mode: mode)) } }
                     .disabled(!store.canControl)
-            } footer: { Text("座椅加热、方向盘加热、过热保护与预约出发将在实际车辆能力验证后接入。") }
+            } footer: { Text("座椅与方向盘加热目前仅模拟；实际能力与操作前提仍需实车验证。过热保护与预约出发待接入。") }
+            SeatHeatControls()
         }
         .navigationTitle("空调")
         .onAppear { temperature = store.vehicle?.targetTemperature ?? 22; mode = store.vehicle?.cabinMode ?? .normal }
@@ -188,8 +196,10 @@ struct VehicleSettingsView: View {
             Section { DemoNotice() }
             Section {
                 ForEach(entries, id: \.0) { item in
-                    NavigationLink(item.0, systemImage: item.1) {
+                    NavigationLink {
                         PreviewInfoView(title: item.0, message: "此入口已预留。接入真实车辆后按硬件、固件和账号权限展示有效字段；不会用零值代替未取得的数据。")
+                    } label: {
+                        Label(item.0, systemImage: item.1)
                     }
                 }
             }

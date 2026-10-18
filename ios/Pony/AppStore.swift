@@ -80,7 +80,7 @@ final class AppStore {
         operations.removeAll { $0.date <= now.addingTimeInterval(-HistoryPolicy.retention) }
     }
 
-    func execute(_ command: VehicleCommand) async {
+    func execute(_ command: VehicleCommand, announceSuccess: Bool = true) async {
         tick()
         guard canControl, !loading else {
             message = UserMessage(title: "暂时无法操作", detail: controlUnavailableReason ?? "正在刷新，请稍后重试。")
@@ -95,7 +95,7 @@ final class AppStore {
             vehicle = updated; now = .now
             let detail = "模拟服务已返回结果。没有向真实车辆发送指令。"
             operations.insert(OperationEntry(date: now, title: command.title, outcome: .succeeded, message: detail), at: 0)
-            message = UserMessage(title: "\(command.title) · 模拟完成", detail: detail)
+            if announceSuccess { message = UserMessage(title: "\(command.title) · 模拟完成", detail: detail) }
         } catch is CancellationError { }
         catch {
             guard generation == requestGeneration else { return }

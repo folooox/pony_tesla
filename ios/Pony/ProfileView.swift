@@ -13,19 +13,23 @@ struct ProfileView: View {
                 } icon: { Image(systemName: "person.crop.circle.fill").font(.largeTitle) }
             }
             Section("车辆与账号") {
-                NavigationLink("账号与车辆授权", systemImage: "key") { AccountView() }
+                NavigationLink { AccountView() } label: { Label("账号与车辆授权", systemImage: "key") }
                 Button("首页快捷控制", systemImage: "slider.horizontal.3") { editingControls = true }
-                NavigationLink("操作记录", systemImage: "clock.arrow.circlepath") { OperationLogView() }
+                NavigationLink { OperationLogView() } label: { Label("操作记录", systemImage: "clock.arrow.circlepath") }
             }
             Section("数据与隐私") {
-                NavigationLink("行程管理与导出", systemImage: "externaldrive.badge.icloud") { DataSettingsView() }
-                NavigationLink("隐私与权限", systemImage: "hand.raised") {
+                NavigationLink { DataSettingsView() } label: { Label("行程管理与导出", systemImage: "externaldrive.badge.icloud") }
+                NavigationLink {
                     PreviewInfoView(title: "隐私与权限", message: "本版本只保存本机快捷控制布局；车辆、行程和操作记录均为内存中的模拟数据。地图与地点搜索使用 MapKit，搜索文字会提交给地图服务。尚未向 Tesla 发送任何请求。")
+                } label: {
+                    Label("隐私与权限", systemImage: "hand.raised")
                 }
             }
             Section("应用") {
-                NavigationLink("显示与辅助功能", systemImage: "textformat.size") {
+                NavigationLink {
                     PreviewInfoView(title: "显示与辅助功能", message: "跟随系统字体大小、深浅色、对比度、减少透明度及减少动态效果设置。导航栏与控件采用系统 Liquid Glass。")
+                } label: {
+                    Label("显示与辅助功能", systemImage: "textformat.size")
                 }
                 LabeledContent("版本", value: "0.2 · 原生演示")
             }

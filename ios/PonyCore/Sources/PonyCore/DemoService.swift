@@ -33,12 +33,14 @@ public actor DemoVehicleService: VehicleService {
     public init(scenario: DemoScenario = .normal, now: Date = .now, latency: Duration = .milliseconds(350)) {
         self.scenario = scenario; self.latency = latency
         var snapshot = VehicleSnapshot(now: now)
+        snapshot.body = .demo
         if scenario == .offline { snapshot.status = .offline }
         if scenario == .asleep { snapshot.status = .asleep }
         if scenario == .missingData {
             snapshot.battery = nil; snapshot.rangeKM = nil; snapshot.cabinTemperature = nil
             snapshot.chargingKW = nil; snapshot.energyAdded = nil; snapshot.coordinate = nil
             snapshot.supported.remove(.windows); snapshot.supported.remove(.closeWindows)
+            snapshot.body = VehicleBodyState()
         }
         vehicle = snapshot
         let one = Self.makeTrip(title: "家 → 公司", end: now.addingTimeInterval(-3600), duration: 32, distance: 18.6, energy: 2.46)
@@ -80,6 +82,13 @@ public actor DemoVehicleService: VehicleService {
             case .unlock: vehicle.locked = false
             case .sentry: vehicle.sentry = !(vehicle.sentry ?? false)
             case .climate: vehicle.cabinMode = vehicle.cabinMode == .off ? .normal : .off
+            case .frunk: vehicle.body.openings[.frunk] = true
+            case .trunk:
+                guard let opened = vehicle.body.openings[.trunk] else { throw ServiceError.unavailable }
+                vehicle.body.openings[.trunk] = !opened
+            case .chargePort: vehicle.body.openings[.chargePort] = true
+            case .windows: vehicle.body.windowsVented = true
+            case .closeWindows: vehicle.body.windowsVented = false
             default: break // Momentary commands acknowledge only; never invent persistent sensor states.
             }
         case .setClimate(let temperature, let mode):
@@ -89,6 +98,17 @@ public actor DemoVehicleService: VehicleService {
             guard limit.isFinite, (50...100).contains(limit) else { throw ServiceError.invalidValue }
             vehicle.chargeLimit = limit
         case .setCharging(let active): vehicle.charging = active
+        case .setSeatHeat(let seat, let level):
+            guard vehicle.body.heatedSeats.contains(seat) else { throw ServiceError.unsupported }
+            guard (0...3).contains(level) else { throw ServiceError.invalidValue }
+            vehicle.body.seatHeat[seat] = level
+        case .setSteeringHeat(let level):
+            guard vehicle.body.supportsSteeringHeat else { throw ServiceError.unsupported }
+            guard (0...1).contains(level) else { throw ServiceError.invalidValue }
+            vehicle.body.steeringHeat = level
+        case .simulateOpening(let opening, let opened):
+            // Explicit sensor simulation, including manual door / frunk closure.
+            vehicle.body.openings[opening] = opened
         }
         vehicle.fetchedAt = now
         return vehicle

@@ -58,7 +58,6 @@ struct TripsView: View {
             .refreshable { await store.refresh() }
         }
         .navigationTitle("行程")
-        .toolbarMinimizeBehavior(.onScrollDown, for: .navigationBar)
     }
 }
 

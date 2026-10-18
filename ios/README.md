@@ -2,7 +2,7 @@
 
 以 **Xcode 27 / iOS 27 SDK** 为目标，最低运行版本 iOS 27.0。纯 SwiftUI，使用系统字体、SF Symbols、MapKit、Swift Charts 和原生 Liquid Glass 控件。
 
-2026-10-15：已完成本轮界面和模拟交互逻辑重构。Linux 上通过 20 项核心逻辑测试、15 项状态流程检查，以及 Swift 语法、工程引用和 Scheme XML 检查。**尚未使用 iOS SDK 构建，也未在模拟器或实机运行；原生外观待 Mac 验证。** 旧 `screenshots/` 属于已放弃的网页视觉方向，不代表本工程效果。
+2026-10-17：已在 Apple Silicon Mac、Xcode 27.1 和 iOS Simulator 27.1 SDK 上通过 20 项核心逻辑测试、15 项状态流程检查、工程结构检查及无签名 Debug 模拟器构建；以 iPhone 17（iOS 27.0）为主完成四个主页面、7 种场景、快捷控制、行程回放、充电操作以及深浅色/大字号/增强对比度测试，iPhone Duo（iOS 27.1）仅完成兼容性冒烟。剩余手动模拟器项目和实机验收见 [验证记录](VALIDATION.md)。旧 `screenshots/` 属于已放弃的网页视觉方向，不代表本工程效果。
 
 ## 本轮实现
 
@@ -13,7 +13,9 @@
 
 系统 TabView、NavigationStack、List、Form、sheet、toolbar 和确认框负责导航及交互。快捷控制使用 GlassEffectContainer 和 glass 按钮，主要充电操作使用 glassProminent；内容区保持系统可读表面。支持系统深浅色、Dynamic Type 和语义颜色；大字号指标列改为纵向。
 
-所有车况、行程和充电记录均为合成数据，演示操作不控制真实车辆。车辆图形使用 SF Symbol 占位。账号授权、真实控车、远程采集尚未接入；后端已提供历史存储、查询及到期清理接口，本原生演示尚未对接；座椅等扩展空调控制、诊断子项、充电预约和发送导航仍为待实现入口。后端已有的单车主连接测试工具尚未成为原生客户端的用户会话服务。
+所有车况、行程和充电记录均为合成数据，演示操作不控制真实车辆。车辆首页现使用 RealityKit 程序化 3D 交互样机，支持外观／座舱切换、独立车门与舱盖、座椅／方向盘模拟加热。它尚未达到官方车辆模型的美术精度。账号授权、真实控车、远程采集尚未接入；后端已提供历史存储、查询及到期清理接口，本原生演示尚未对接；真实扩展空调控制、诊断子项、充电预约和发送导航仍待实现。后端已有的单车主连接测试工具尚未成为原生客户端的用户会话服务。
+
+在车辆页右上菜单选择“车况演示”可注入各门、舱盖和充电口状态；这是本地传感器模拟，不表示 Model 3 支持远程打开／关闭每扇车门。“空调”页从座舱视角开始，各座椅加热挡位在模拟服务回报后更新。精细资产和 IP 主题规划见 [车辆体验设计](../docs/design/vehicle-experience.md)。
 
 完整的首次安装、脚本构建、模拟器运行与实机签名流程见 [Mac 编译指南](../docs/mac-build.zh-CN.md)（[English](../docs/mac-build.en.md)）。
 
@@ -33,7 +35,7 @@ xcodebuild -project ios/Pony.xcodeproj -scheme Pony \
   CODE_SIGNING_ALLOWED=NO build
 ```
 
-当前环境无法验证该命令的结果，首次在 Mac 上应先处理 SDK 类型检查或运行问题，再进行视觉验收。实机运行需设置自己的签名团队；应用图标、发布资料及发行归档尚未完成。
+该命令已在 Xcode 27.1 / iOS Simulator 27.1 SDK 上构建成功，产物位于 `ios/DerivedData/Build/Products/Debug-iphonesimulator/Pony.app`。构建日志与 iPhone 17 四个主页面截图位于 `artifacts/mac-build/`。剩余清单项目与边界见 [验证记录](VALIDATION.md)；实机运行需设置自己的签名团队。应用图标、发布资料及发行归档尚未完成。
 
 在 scheme 的 Run → Arguments 中可以配置两个参数：`-scenario` 和以下值之一：
 

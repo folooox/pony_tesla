@@ -1,5 +1,7 @@
 import Foundation
+#if canImport(FoundationXML)
 import FoundationXML
+#endif
 
 let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
 let path = root.appendingPathComponent("Pony.xcodeproj/project.pbxproj")

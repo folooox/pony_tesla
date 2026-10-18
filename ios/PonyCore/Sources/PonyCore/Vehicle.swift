@@ -78,6 +78,7 @@ public struct VehicleSnapshot: Sendable, Equatable {
     public var outsideTemperature: Double? = 21
     public var targetTemperature: Double? = 22
     public var cabinMode: CabinMode = .off
+    public var body = VehicleBodyState()
     public var charging = true
     public var chargeLimit = 80.0
     public var chargingKW: Double? = 7
@@ -97,12 +98,19 @@ public enum VehicleCommand: Sendable, Equatable {
     case setClimate(temperature: Double, mode: CabinMode)
     case setChargeLimit(Double)
     case setCharging(Bool)
+    case setSeatHeat(SeatPosition, Int)
+    case setSteeringHeat(Int)
+    /// Sensor injection for the local demo only. Never map this to a Fleet command.
+    case simulateOpening(VehicleOpening, Bool)
     public var title: String {
         switch self {
         case .quick(let control): control.title
         case .setClimate: "应用空调设置"
         case .setChargeLimit: "应用充电上限"
         case .setCharging(let active): active ? "开始充电" : "暂停充电"
+        case .setSeatHeat(let seat, _): "\(seat.title)加热"
+        case .setSteeringHeat: "方向盘加热"
+        case .simulateOpening(let opening, _): "模拟\(opening.title)状态"
         }
     }
 }

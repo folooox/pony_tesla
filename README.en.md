@@ -4,7 +4,7 @@ English | [简体中文](README.md)
 
 A third-party iOS app for Tesla owners in mainland China, initially targeting the China-built 2022 Model 3. Built with SwiftUI, MapKit, Swift Charts and native Liquid Glass for vehicle controls, charging and the latest 168 hours of trips.
 
-> The native client currently uses synthetic data and does not control a real vehicle. The backend provides connection testing and history APIs, but native authentication, live commands, continuous telemetry and backend sessions are not integrated. No iOS SDK build, simulator run or device validation has been performed in this environment.
+> The native client currently uses synthetic data and does not control a real vehicle. The backend provides connection testing and history APIs, but native authentication, live commands, continuous telemetry and backend sessions are not integrated. The current Mac environment has completed an iOS 27.1 SDK build and functional coverage of all four main screens, failure scenarios, command confirmations, trip playback, charging flows and display adaptations on the primary iPhone 17 (iOS 27.0) simulator. iPhone Duo (iOS 27.1) is retained as a compatibility smoke target. Physical-device and real-Tesla validation remain pending.
 
 ## Start on a Mac
 
@@ -29,7 +29,7 @@ Follow the [complete Mac build guide](docs/mac-build.en.md) for Xcode setup, sim
 | Native core and state management | Swift checks available; see the [validation record](ios/VALIDATION.md) |
 | Tesla connection tool | China-region OAuth, encrypted token storage/refresh, vehicle list and single status read; real authorization pending |
 | History backend | SQLite status cache, trip list/detail/notes/deletion/CSV, 168-hour retention and isolated synthetic ingestion |
-| Remaining work | Native real sessions/commands, continuous collection, vehicle integration, iOS build/visual acceptance, release icons and store materials |
+| Remaining work | Native real sessions/commands, continuous collection, vehicle integration, remaining manual simulator cases, physical-device validation, release icons and store materials |
 
 Demo vehicle state, notes and history reset between launches. Shortcut layout persists in UserDefaults. Existing `screenshots/` and `prototype/` show an earlier web design, not the current native interface.
 
