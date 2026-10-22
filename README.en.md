@@ -4,7 +4,9 @@ English | [简体中文](README.md)
 
 A third-party iOS app for Tesla owners in mainland China, initially targeting the China-built 2022 Model 3. Built with SwiftUI, MapKit, Swift Charts and native Liquid Glass for vehicle controls, charging and the latest 168 hours of trips.
 
-> The native client currently uses synthetic data and does not control a real vehicle. The backend provides connection testing and history APIs, but native authentication, live commands, continuous telemetry and backend sessions are not integrated. The current Mac environment has completed an iOS 27.1 SDK build and functional coverage of all four main screens, failure scenarios, command confirmations, trip playback, charging flows and display adaptations on the primary iPhone 17 (iOS 27.0) simulator. iPhone Duo (iOS 27.1) is retained as a compatibility smoke target. Physical-device and real-Tesla validation remain pending.
+> This branch contains the native read-only sign-in candidate and the China third-party issuer/JWKS correction. Deployment and real sign-in acceptance remain pending. Demo controls do not operate vehicles; real commands, telemetry and trip collection are unavailable. Older simulator validation below does not establish an iOS build or real sign-in acceptance for this candidate.
+
+**Use `fix/direct-login-20261022` for this fix. See the [update, deployment and rollback guide (Chinese)](docs/login-update.zh-CN.md). Default `main` does not contain this native sign-in implementation.**
 
 ## Start on a Mac
 

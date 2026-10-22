@@ -1,5 +1,7 @@
 # Pony 原生 iOS 工程
 
+**此登录分支已包含原生只读账号候选实现。2026-10-22 后端身份校验修正与拉取方式见 [登录修正指南](../docs/login-update.zh-CN.md)。下文为先前演示版构建记录，不代表此候选完成了 iOS 构建或真实登录验收。**
+
 以 **Xcode 27 / iOS 27 SDK** 为目标，最低运行版本 iOS 27.0。纯 SwiftUI，使用系统字体、SF Symbols、MapKit、Swift Charts 和原生 Liquid Glass 控件。
 
 2026-10-17：已在 Apple Silicon Mac、Xcode 27.1 和 iOS Simulator 27.1 SDK 上通过 20 项核心逻辑测试、15 项状态流程检查、工程结构检查及无签名 Debug 模拟器构建；以 iPhone 17（iOS 27.0）为主完成四个主页面、7 种场景、快捷控制、行程回放、充电操作以及深浅色/大字号/增强对比度测试，iPhone Duo（iOS 27.1）仅完成兼容性冒烟。剩余手动模拟器项目和实机验收见 [验证记录](VALIDATION.md)。旧 `screenshots/` 属于已放弃的网页视觉方向，不代表本工程效果。
