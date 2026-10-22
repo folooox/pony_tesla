@@ -1,66 +1,85 @@
 import SwiftUI
+import UIKit
 import PonyCore
 
 struct VehicleStage: View {
     let vehicle: VehicleSnapshot
-    var initialCamera: VehicleCamera = .exterior
-    @Environment(\.colorScheme) private var scheme
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.scenePhase) private var scenePhase
-    @State private var camera: VehicleCamera = .exterior
-    @State private var rotation: Float = 0
-    @State private var dragStart: Float = 0
-    @State private var visible = false
+    @Binding var camera: VehicleCamera
+
+    private var slot: VehicleArtworkSlot {
+        switch camera {
+        case .exterior: .homeClosed
+        case .overhead: .controlTop
+        case .cabin: .cabinTop
+        }
+    }
+    private var style: VehicleArtworkStyle? {
+        VehicleArtworkCatalog.style(for: vehicle.vehicleStyleID)
+    }
+    private var artwork: UIImage? {
+        guard let name = VehicleArtworkCatalog.assetName(for: vehicle, slot: slot) else { return nil }
+        return UIImage(named: name)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Text("MODEL 3").font(.subheadline.weight(.semibold)).tracking(2)
+                Text(style?.title ?? "车辆").font(.subheadline.weight(.semibold)).tracking(2)
                 Spacer()
-                Text("2022 · 后轮驱动").font(.caption).foregroundStyle(.secondary)
-            }
-            ZStack(alignment: .bottom) {
-                VehicleScene(vehicle: vehicle, camera: camera, dark: scheme == .dark,
-                    animate: !reduceMotion && visible && scenePhase == .active, rotation: rotation)
-                    .frame(height: 235)
-                    .accessibilityHidden(true)
-                    .gesture(DragGesture(minimumDistance: 12)
-                        .onChanged { value in
-                            guard abs(value.translation.width) > abs(value.translation.height) else { return }
-                            rotation = dragStart + Float(value.translation.width) * 0.008
-                        }
-                        .onEnded { _ in dragStart = rotation })
-                HStack {
-                    Text("3D 交互样机").font(.caption2)
-                    Spacer()
-                    Button("重置视角", systemImage: "arrow.counterclockwise") { rotation = 0; dragStart = 0 }
-                        .labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
+                if let style {
+                    Text(style.subtitle).font(.caption).foregroundStyle(.secondary)
                 }
-                .foregroundStyle(.secondary).padding(.horizontal, 16)
             }
-            .clipShape(RoundedRectangle(cornerRadius: 24))
-            .accessibilityElement(children: .contain)
-            .accessibilityLabel("车辆三维视图，\(camera.rawValue)")
-            .accessibilityAdjustableAction { direction in
-                rotation += direction == .increment ? 0.35 : -0.35; dragStart = rotation
+            ZStack {
+                if let artwork {
+                    Image(uiImage: artwork)
+                        .resizable()
+                        .scaledToFit()
+                        .accessibilityLabel("车辆外观，车门关闭")
+                        .accessibilityIdentifier("vehicle.artwork.home.closed")
+                } else {
+                    VStack(spacing: 10) {
+                        Image(systemName: "car.side").font(.largeTitle).accessibilityHidden(true)
+                        Text("车辆画面暂不可用").font(.subheadline)
+                    }
+                    .foregroundStyle(.secondary)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityIdentifier("vehicle.artwork.unavailable")
+                }
             }
+            .frame(maxWidth: .infinity)
+            .frame(height: 235)
             Picker("车辆视角", selection: $camera) {
-                ForEach(VehicleCamera.allCases) { Text($0.rawValue).tag($0) }
-            }.pickerStyle(.segmented)
+                ForEach(VehicleCamera.allCases) {
+                    Text($0.rawValue).tag($0)
+                        .accessibilityIdentifier("vehicle.camera.\($0 == .exterior ? "exterior" : $0 == .overhead ? "overhead" : "cabin")")
+                }
+            }
+            .pickerStyle(.segmented)
+            .frame(minHeight: 44)
+            .accessibilityIdentifier("vehicle.presentation")
             if vehicle.body.unknownOpenings {
-                Label("部分车身状态未知", systemImage: "questionmark.circle").font(.footnote).foregroundStyle(.secondary)
+                Label("部分车身状态未知", systemImage: "questionmark.circle")
+                    .font(.footnote).foregroundStyle(.secondary)
             }
             if !vehicle.body.openLabels.isEmpty {
                 Label(vehicle.body.openLabels.joined(separator: "、") + "已打开", systemImage: "car.side.rear.open")
                     .font(.footnote).foregroundStyle(.primary)
+            }
+            if let vented = vehicle.body.windowsVented {
+                if vented {
+                    Label("车窗通风中", systemImage: "car.side")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
+            } else {
+                Label("车窗状态未知", systemImage: "questionmark.circle")
+                    .font(.footnote).foregroundStyle(.secondary)
             }
             if vehicle.cabinMode != .off {
                 Label("空调 · \(vehicle.cabinMode.rawValue)", systemImage: "fan")
                     .font(.footnote).foregroundStyle(.secondary)
             }
         }
-        .onAppear { camera = initialCamera; visible = true }
-        .onDisappear { visible = false }
     }
 }
 
@@ -72,7 +91,7 @@ struct VehicleBodyDemoView: View {
         NavigationStack {
             Form {
                 Section {
-                    Text("模拟车门与舱盖传感器的回报，检查模型联动。这些开关不会发送真实开门或关门指令。")
+                    Text("模拟车门与舱盖传感器的回报，检查车况显示。这些开关不会发送真实开门或关门指令。")
                     StatusNotice()
                 }
                 if let vehicle = store.vehicle {
@@ -101,7 +120,7 @@ struct SeatHeatControls: View {
                 ForEach(SeatPosition.allCases) { seat in
                     if vehicle.body.heatedSeats.contains(seat) {
                         HStack {
-                            Label(seat.title, systemImage: "seat.heat.waves")
+                            Label(seat.title, systemImage: "carseat.left.and.heat.waves")
                             Spacer()
                             Menu {
                                 ForEach(0...3, id: \.self) { level in

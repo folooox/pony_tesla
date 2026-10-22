@@ -3,24 +3,39 @@ import PonyCore
 
 struct ProfileView: View {
     @Environment(AppStore.self) private var store
+    @Environment(NativeAccountState.self) private var account
     @State private var editingControls = false
+    private var privacyMessage: String {
+        if account.storageUnavailable {
+            return "安全会话存储尚未读取成功，请前往账号页面重试。不会自动访问服务器或清除安全存储。模拟数据与真实账号分离。"
+        }
+        if account.hasLocalSession {
+            return "应用会话凭据保存在本机 Keychain。手动加载列表、读取状态或查看缓存会请求账号所属的后端服务，并可能由后端请求 Tesla；无自动轮询或控车。缓存可能过期，真实行程与充电历史尚未采集。退出不等于撤销 Tesla 授权或删除数据。演示记录与真实账号分离。地图搜索文字会提交给地图服务。"
+        }
+        return "当前显示本机模拟车辆、行程与操作记录，演示控制不会操作真实车辆。连接账号后才可手动加载真实车辆与只读状态；不自动轮询。退出后不代表服务器数据已删除或 Tesla 授权已撤销。地图搜索文字会提交给地图服务。"
+    }
     var body: some View {
         List {
             Section {
                 Label {
                     Text("Pony 车主").font(.headline)
-                    Text("演示模式 · 尚未连接 Tesla").font(.subheadline).foregroundStyle(.secondary)
+                    Text(account.status).font(.subheadline).foregroundStyle(.secondary)
                 } icon: { Image(systemName: "person.crop.circle.fill").font(.largeTitle) }
             }
             Section("车辆与账号") {
                 NavigationLink { AccountView() } label: { Label("账号与车辆授权", systemImage: "key") }
-                Button("首页快捷控制", systemImage: "slider.horizontal.3") { editingControls = true }
-                NavigationLink { OperationLogView() } label: { Label("操作记录", systemImage: "clock.arrow.circlepath") }
+            }
+            Section("演示功能与设置（非真实账号数据）") {
+                NavigationLink("演示车辆与控制") { VehicleView() }
+                NavigationLink("演示行程") { TripsView() }
+                NavigationLink("演示充电") { ChargingView() }
+                Button("演示首页快捷控制", systemImage: "slider.horizontal.3") { editingControls = true }
+                NavigationLink { OperationLogView() } label: { Label("模拟操作记录", systemImage: "clock.arrow.circlepath") }
             }
             Section("数据与隐私") {
-                NavigationLink { DataSettingsView() } label: { Label("行程管理与导出", systemImage: "externaldrive.badge.icloud") }
+                NavigationLink { DataSettingsView() } label: { Label("模拟行程管理与导出", systemImage: "externaldrive.badge.icloud") }
                 NavigationLink {
-                    PreviewInfoView(title: "隐私与权限", message: "本版本只保存本机快捷控制布局；车辆、行程和操作记录均为内存中的模拟数据。地图与地点搜索使用 MapKit，搜索文字会提交给地图服务。尚未向 Tesla 发送任何请求。")
+                    PreviewInfoView(title: "隐私与权限", message: privacyMessage)
                 } label: {
                     Label("隐私与权限", systemImage: "hand.raised")
                 }
@@ -31,7 +46,7 @@ struct ProfileView: View {
                 } label: {
                     Label("显示与辅助功能", systemImage: "textformat.size")
                 }
-                LabeledContent("版本", value: "0.2 · 原生演示")
+                LabeledContent("版本", value: "0.3 · 原生只读接入")
             }
             Section {
                 Picker("测试场景", selection: Binding(get: { store.scenario }, set: { next in Task { await store.changeScenario(next) } })) {
@@ -39,25 +54,10 @@ struct ProfileView: View {
                 }
                 Button("重置当前演示") { Task { await store.changeScenario(store.scenario) } }
                     .disabled(store.loading || store.commandInFlight)
-            } header: { Text("模拟器测试") } footer: { Text("切换场景会重置模拟车辆及历史，不影响快捷控制布局，也不会操作真实账号。") }
+            } header: { Text("演示场景（仅影响模拟数据）") } footer: { Text("切换场景会重置模拟车辆及历史，不影响快捷控制布局，也不会操作真实账号。") }
         }
         .navigationTitle("我的")
         .sheet(isPresented: $editingControls) { ControlEditor() }
-    }
-}
-
-struct AccountView: View {
-    var body: some View {
-        Form {
-            Section("当前状态") {
-                LabeledContent("数据来源", value: "本机模拟服务")
-                LabeledContent("Tesla 账号", value: "尚未连接")
-            }
-            Section {
-                Button("使用 Tesla 账号连接", systemImage: "person.crop.circle.badge.checkmark") { }
-                    .disabled(true)
-            } footer: { Text("开发者应用凭据、后端用户会话和原生 OAuth 回调尚未接入，因此当前不开放真实登录。后续会在 Tesla 官方页面完成授权。") }
-        }.navigationTitle("账号与授权")
     }
 }
 
