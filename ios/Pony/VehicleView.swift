@@ -4,8 +4,8 @@ import PonyCore
 
 struct VehicleView: View {
     @Environment(AppStore.self) private var store
+    @ScaledMetric(relativeTo: .caption) private var quickControlMinimumWidth: CGFloat = 64
     @State private var editing = false
-    @State private var allControls = false
     @State private var pending: QuickControl?
     @State private var confirming = false
     @State private var bodyDemo = false
@@ -13,30 +13,37 @@ struct VehicleView: View {
     var body: some View {
         DashboardGate { vehicle in
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    DemoNotice()
-                    StatusNotice()
+                VStack(alignment: .leading, spacing: 16) {
+                    Label("演示模式，不控制真实车辆", systemImage: "info.circle")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .accessibilityIdentifier("demo.notice")
                     overview(vehicle)
+                    if !store.commandInFlight { StatusNotice() }
+                    activeStates(vehicle)
+                    commandFeedback
                     quickControls
-                    NavigationLink { ClimateView() } label: {
-                        GroupBox {
-                            LabeledContent {
-                                Text("\(Display.number(vehicle.targetTemperature)) °C").font(.title2).monospacedDigit()
-                            } label: {
-                                Label("空调", systemImage: "fan")
-                                Text("车内 \(Display.number(vehicle.cabinTemperature)) °C · 车外 \(Display.number(vehicle.outsideTemperature)) °C")
-                                    .font(.subheadline).foregroundStyle(.secondary)
-                            }
+                    VStack(spacing: 0) {
+                        NavigationLink { ClimateView() } label: {
+                            homeRow("空调、座椅与方向盘加热", symbol: "fan")
+                        }.accessibilityIdentifier("vehicle.openClimate")
+                        Divider().padding(.leading, 16)
+                        NavigationLink { AllControlsView(embedded: true) } label: {
+                            homeRow("全部控制", symbol: "square.grid.2x2")
+                        }.accessibilityIdentifier("vehicle.openControls")
+                        Divider().padding(.leading, 16)
+                        NavigationLink { LocationView() } label: {
+                            homeRow("车辆位置", symbol: "location")
                         }
-                    }.buttonStyle(.plain)
-                    NavigationLink { LocationView() } label: {
-                        GroupBox { LabeledContent("车辆位置", value: vehicle.coordinate == nil ? "暂无位置" : "查看地图") }
-                    }.buttonStyle(.plain)
-                    NavigationLink { VehicleSettingsView() } label: {
-                        Label("车况与设置", systemImage: "slider.horizontal.3")
+                        Divider().padding(.leading, 16)
+                        NavigationLink { VehicleSettingsView() } label: {
+                            homeRow("车况与设置", symbol: "slider.horizontal.3")
+                        }
                     }
-                        .buttonStyle(.glass)
-                }.padding()
+                    .buttonStyle(.plain)
+                    .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+                }
+                .padding(16)
             }
             .refreshable { await store.refresh() }
         }
@@ -47,15 +54,13 @@ struct VehicleView: View {
             ToolbarItem(placement: .topBarPinnedTrailing) {
                 Menu("车辆操作", systemImage: "ellipsis") {
                     Button("编辑快捷控制", systemImage: "slider.horizontal.3") { editing = true }
-                    Button("全部控制", systemImage: "square.grid.2x2") { allControls = true }
-                    Button("车况演示", systemImage: "cube.transparent") { bodyDemo = true }
+                    Button("车况模拟（仅演示测试）", systemImage: "wrench.and.screwdriver") { bodyDemo = true }
                     Button("刷新状态", systemImage: "arrow.clockwise") { Task { await store.refresh() } }
                         .disabled(store.loading || store.commandInFlight)
                 }
             }
         }
         .sheet(isPresented: $editing) { ControlEditor() }
-        .sheet(isPresented: $allControls) { AllControlsView() }
         .sheet(isPresented: $bodyDemo) { VehicleBodyDemoView() }
         .confirmationDialog(pending?.title ?? "车辆操作", isPresented: $confirming, titleVisibility: .visible) {
             Button("模拟\(pending?.title ?? "操作")") {
@@ -64,37 +69,168 @@ struct VehicleView: View {
             Button("取消", role: .cancel) { pending = nil }
         } message: { Text("将修改本机模拟车辆状态，不向真实车辆发送指令。") }
     }
+
     private func overview(_ vehicle: VehicleSnapshot) -> some View {
-        VStack(spacing: 20) {
-            Label(vehicle.locked.map { $0 ? "已锁车" : "未锁车" } ?? "锁车状态未知", systemImage: vehicle.locked == false ? "lock.open" : "lock")
-                .font(.subheadline).foregroundStyle(.secondary)
-            VehicleStage(vehicle: vehicle)
-            MetricRow(values: [("当前电量", Display.number(vehicle.battery), "%"), ("预计续航", Display.number(vehicle.rangeKM), "km")])
-            Text("数据时间：\(vehicle.fetchedAt.formatted(date: .omitted, time: .standard))")
+        let current = vehicle.status == .online && vehicle.isFresh(at: store.now)
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(vehicle.battery.map { "\(Display.number($0))%" } ?? "电量未知")
+                    .font(.title2.weight(.semibold)).monospacedDigit()
+                Text(vehicle.rangeKM.map { "预计续航 \(Display.number($0)) km" } ?? "续航未知")
+                    .font(.subheadline).foregroundStyle(.secondary)
+            }
+            Text(current ? "演示快照 · 在线" : "上次演示快照 · \(vehicle.status == .offline ? "离线" : vehicle.status == .asleep ? "休眠" : "数据已过期")")
+                .font(.caption).foregroundStyle(.secondary)
+            Text((current ? "" : "上次状态：") + (vehicle.locked.map { $0 ? "已锁车" : "未锁车" } ?? "锁车状态未知"))
+                .font(.subheadline)
+            bodySummary(vehicle.body, current: current)
+            Text("数据时间：\(vehicle.fetchedAt.formatted(date: .numeric, time: .standard))")
                 .font(.caption).foregroundStyle(.secondary)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+        .accessibilityElement(children: .combine)
     }
-    private var quickControls: some View {
+
+    private func bodySummary(_ body: VehicleBodyState, current: Bool) -> some View {
+        var parts: [String] = []
+        if !body.openLabels.isEmpty { parts.append(body.openLabels.joined(separator: "、") + "已打开") }
+        if body.unknownOpenings { parts.append("部分车门与舱盖状态未知") }
+        else if body.openLabels.isEmpty { parts.append("车门与舱盖均已关闭") }
+        if let vented = body.windowsVented { parts.append(vented ? "车窗通风中" : "车窗已关闭") }
+        else { parts.append("车窗状态未知") }
+        return Text((current ? "" : "上次车身状态：") + parts.joined(separator: " · "))
+            .font(.caption).foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    @ViewBuilder private func activeStates(_ vehicle: VehicleSnapshot) -> some View {
+        let presentation = FeatureStatusPresentation(vehicle: vehicle, now: store.now)
+        if !presentation.current.isEmpty {
+            statusSection("已开启", cards: presentation.current, vehicle: vehicle)
+        }
+        if !presentation.previous.isEmpty {
+            statusSection("上次状态", cards: presentation.previous, vehicle: vehicle)
+        }
+    }
+
+    private func statusSection(_ title: String, cards: [FeatureStatusCard], vehicle: VehicleSnapshot) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("快捷控制").font(.headline)
-            GlassEffectContainer {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 76), spacing: 12)], spacing: 16) {
-                    ForEach(store.visibleControls) { control in
-                        VStack(spacing: 8) {
-                            Button { pending = control; confirming = true } label: {
-                                Image(systemName: control.symbol).font(.title3).frame(minWidth: 44, minHeight: 44)
+            Text(title).font(.headline).accessibilityAddTraits(.isHeader)
+            ForEach(cards) { card in
+                NavigationLink { featureDestination(card.feature) } label: {
+                    HStack(alignment: .center, spacing: 12) {
+                        Image(systemName: card.feature.symbol).font(.title3)
+                            .frame(minWidth: 28).accessibilityHidden(true)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(card.title).font(.headline)
+                            if let cached = card.cachedStatus {
+                                Text(cached).font(.subheadline).foregroundStyle(.secondary)
+                                Text(card.timestamp.formatted(date: .numeric, time: .standard))
+                                    .font(.caption).foregroundStyle(.secondary)
                             }
-                            .buttonStyle(.glass).buttonBorderShape(.circle)
-                            .disabled(!store.canControl || store.loading)
-                            .accessibilityLabel(control.title)
-                            .accessibilityIdentifier("control.\(control.rawValue)")
-                            Text(control.title).font(.caption)
+                            if [.climate, .dog, .camp, .defrost].contains(card.feature), let temperature = vehicle.targetTemperature {
+                                Text("设定温度：\(Display.number(temperature)) °C")
+                                    .font(.subheadline).foregroundStyle(.secondary)
+                            }
                         }
+                        Spacer(minLength: 0)
+                        Image(systemName: "chevron.right").font(.caption.weight(.semibold))
+                            .foregroundStyle(.tertiary).accessibilityHidden(true)
+                    }
+                    .padding(16)
+                    .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
+                    .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("vehicle.status.\(card.feature.rawValue)")
+            }
+        }
+        // Snapshot updates deliberately have no animated insert/remove transition,
+        // including when Reduce Motion is enabled.
+    }
+
+    @ViewBuilder private func featureDestination(_ feature: VehicleFeature) -> some View {
+        switch feature {
+        case .climate, .dog, .camp, .defrost, .seats, .wheel: ClimateView()
+        case .charging: ChargingView()
+        case .sentry: AllControlsView(embedded: true)
+        case .valet: VehicleSettingsView() // No valet reading is synthesized by the snapshot adapter.
+        }
+    }
+
+    @ViewBuilder private var commandFeedback: some View {
+        if let command = store.pendingCommand {
+            let feedback = CommandStatusPresentation(commandTitle: command.title, phase: .pending)
+            VStack(alignment: .leading, spacing: 8) {
+                Text(feedback.title).font(.headline).accessibilityAddTraits(.isHeader)
+                ProgressView("\(feedback.commandTitle) · \(feedback.detail)")
+                    .font(.subheadline)
+                Text("正在等待模拟服务返回；不代表真实车辆状态。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading).padding(16)
+            .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+            .accessibilityIdentifier("vehicle.command.pending")
+        }
+        if !store.operations.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("最近模拟操作").font(.headline).accessibilityAddTraits(.isHeader)
+                ForEach(Array(store.operations.prefix(3))) { operation in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("\(operation.title) · \(operation.outcome == .succeeded ? "模拟完成" : "模拟操作未完成")")
+                            .font(.subheadline.weight(.semibold))
+                        Text(operation.message).font(.caption).foregroundStyle(.secondary)
+                        Text(operation.date.formatted(date: .numeric, time: .standard))
+                            .font(.caption).foregroundStyle(.secondary)
                     }
                 }
             }
-            if store.visibleControls.isEmpty { Button("添加快捷控制") { editing = true }.buttonStyle(.glass) }
-            if store.commandInFlight { ProgressView("等待模拟服务反馈…").font(.footnote) }
+            .frame(maxWidth: .infinity, alignment: .leading).padding(16)
+            .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+        }
+    }
+
+    private func homeRow(_ title: String, symbol: String) -> some View {
+        HStack(spacing: 12) {
+            Label(title, systemImage: symbol)
+            Spacer(minLength: 0)
+            Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+        .contentShape(Rectangle())
+    }
+
+    private var quickControls: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("快捷控制").font(.headline).accessibilityAddTraits(.isHeader)
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: quickControlMinimumWidth), spacing: 12)], spacing: 16) {
+                ForEach(store.visibleControls) { control in
+                    Button { pending = control; confirming = true } label: {
+                        VStack(spacing: 8) {
+                            Image(systemName: control.symbol).font(.title3)
+                                .frame(minWidth: 44, minHeight: 44)
+                            Text(control.title).font(.caption)
+                                .multilineTextAlignment(.center)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 72)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!store.canControl || store.loading)
+                    .accessibilityLabel(control.title)
+                    .accessibilityIdentifier("control.\(control.rawValue)")
+                }
+            }
+            .padding(16)
+            .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+            if store.visibleControls.isEmpty {
+                Button("添加快捷控制") { editing = true }.frame(minHeight: 44)
+            }
         }
     }
 }
@@ -133,12 +269,15 @@ struct ControlEditor: View {
 }
 
 struct AllControlsView: View {
+    var embedded = false
     @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     @State private var pending: QuickControl?
     @State private var confirming = false
     var body: some View {
-        NavigationStack {
+        if embedded { controls } else { NavigationStack { controls } }
+    }
+    private var controls: some View {
             List {
                 Section { DemoNotice(); StatusNotice() }
                 Section {
@@ -149,11 +288,10 @@ struct AllControlsView: View {
                 }
             }
             .navigationTitle("全部控制").navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("完成") { dismiss() } } }
+            .toolbar { if !embedded { ToolbarItem(placement: .confirmationAction) { Button("完成") { dismiss() } } } }
             .confirmationDialog(pending?.title ?? "车辆操作", isPresented: $confirming, titleVisibility: .visible) {
-                Button("模拟执行") { if let pending { Task { await store.execute(.quick(pending)); dismiss() } } }
+                Button("模拟执行") { if let pending { Task { await store.execute(.quick(pending)); if !embedded { dismiss() } } } }
             } message: { Text("不会发送真实车辆指令。执行结果会记录在模拟操作记录中。") }
-        }
     }
 }
 
@@ -164,10 +302,6 @@ struct ClimateView: View {
     var body: some View {
         Form {
             Section { DemoNotice(); StatusNotice() }
-            if let vehicle = store.vehicle {
-                Section { VehicleStage(vehicle: vehicle, initialCamera: .cabin) }
-                    .listRowInsets(EdgeInsets(top: 12, leading: 12, bottom: 12, trailing: 12))
-            }
             Section("温度") {
                 LabeledContent("车辆设定", value: "\(Display.number(store.vehicle?.targetTemperature, digits: 1)) °C")
                 LabeledContent("待应用温度", value: "\(Display.number(temperature, digits: 1)) °C")
@@ -237,6 +371,11 @@ struct LocationView: View {
         .onSubmit(of: .search) {
             searchTask?.cancel()
             searchTask = Task { await search() }
+        }
+        .onChange(of: query) { _, next in
+            if next.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                searchTask?.cancel(); results = []; issue = nil; searching = false
+            }
         }
         .onDisappear { searchTask?.cancel(); searching = false }
         .navigationTitle("找车与导航")

@@ -32,7 +32,7 @@ public actor DemoVehicleService: VehicleService {
     private var commandActive = false
     public init(scenario: DemoScenario = .normal, now: Date = .now, latency: Duration = .milliseconds(350)) {
         self.scenario = scenario; self.latency = latency
-        var snapshot = VehicleSnapshot(now: now)
+        var snapshot = VehicleSnapshot(now: now, vehicleStyleID: VehicleArtworkCatalog.demoStyleID)
         snapshot.body = .demo
         if scenario == .offline { snapshot.status = .offline }
         if scenario == .asleep { snapshot.status = .asleep }

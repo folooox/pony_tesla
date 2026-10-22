@@ -25,6 +25,7 @@ final class AppStore {
     private(set) var operations: [OperationEntry] = []
     private(set) var loading = false
     private(set) var commandInFlight = false
+    private(set) var pendingCommand: VehicleCommand?
     private(set) var failure: ServiceError?
     private(set) var scenario: DemoScenario
     private(set) var layout: ControlLayout
@@ -88,7 +89,13 @@ final class AppStore {
         }
         let requestGeneration = generation
         commandInFlight = true
-        defer { if generation == requestGeneration { commandInFlight = false } }
+        pendingCommand = command
+        defer {
+            if generation == requestGeneration {
+                commandInFlight = false
+                pendingCommand = nil
+            }
+        }
         do {
             let updated = try await service.execute(command, now: .now)
             guard generation == requestGeneration, !Task.isCancelled else { return }
@@ -110,7 +117,7 @@ final class AppStore {
         generation = UUID() // Ignore old in-flight responses when switching scenarios.
         scenario = next; service = DemoVehicleService(scenario: next)
         vehicle = nil; trips = []; charges = []; operations = []
-        loading = false; commandInFlight = false; failure = nil; message = nil
+        loading = false; commandInFlight = false; pendingCommand = nil; failure = nil; message = nil
         await refresh()
     }
 

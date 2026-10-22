@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url';
 import { config, Vault, OAuthStates, TeslaClient, SafeError, isRecord, validVin } from './core.mjs';
 import { HistoryStore, tripCSV } from './history.mjs';
 import { readiness } from './readiness.mjs';
+import { createNativeRouter } from './native-router.mjs';
 
 async function readJSON(req, limit = 4096) {
   let size = 0;
@@ -27,11 +28,11 @@ function authorized(header, password) {
   return actual.length === expected.length && timingSafeEqual(actual, expected);
 }
 
-export function createApp(settings, client, vault, history = null) {
+export function createApp(settings, client, vault, history = null, nativeRouter = createNativeRouter(settings)) {
   const states = new OAuthStates();
   let probeActive = false;
   let lastProbe = 0;
-  return http.createServer(async (req, res) => {
+  const server = http.createServer({ maxHeaderSize: 16384, requestTimeout: 15000, headersTimeout: 10000 }, async (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('Referrer-Policy', 'no-referrer');
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -39,6 +40,9 @@ export function createApp(settings, client, vault, history = null) {
     const json = (value, status = 200) => { res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(value)); };
     try {
       const url = new URL(req.url, 'http://localhost');
+      // Native owns its namespace before Basic admin authentication, and only its
+      // namespaced OAuth states. Neither router can borrow the other's identity.
+      if (await nativeRouter(req, res, url)) return;
       if (url.pathname === '/healthz' && req.method === 'GET') return json({ status: settings.missing.length ? 'needs_configuration' : 'ready_for_authorization' });
       if (url.pathname === '/.well-known/appspecific/com.tesla.3p.public-key.pem' && req.method === 'GET') {
         let key;
@@ -147,10 +151,13 @@ export function createApp(settings, client, vault, history = null) {
       json({ error: e instanceof SafeError ? e.message : '后台内部错误，请检查配置与加密存储' }, e instanceof SafeError ? e.status : 500);
     }
   });
+  server.on('close', () => nativeRouter.close?.());
+  return server;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const settings = config();
+  const settings = { ...config(), nativeEnabled: process.env.NATIVE_ENABLED === '1',
+    nativeApprovedOrigin: process.env.NATIVE_APPROVED_ORIGIN };
   const vault = settings.key ? new Vault(settings.dir, settings.key) : null;
   const client = settings.missing.length ? null : new TeslaClient(settings, vault);
   const history = new HistoryStore(`${settings.dir}/history.sqlite`);
