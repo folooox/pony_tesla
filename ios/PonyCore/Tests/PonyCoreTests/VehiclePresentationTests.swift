@@ -53,3 +53,99 @@ private let presentationNow = Date(timeIntervalSince1970: 1_790_000_000)
     await #expect(throws: ServiceError.offline) { try await service.execute(.simulateOpening(.frunk, true), now: presentationNow) }
     #expect(try await service.dashboard(now: presentationNow).vehicle.body.openings[.frunk] == false)
 }
+
+@Test func presentationTransitionClampsAndEases() {
+    var motion = VehicleTransition()
+    #expect(motion.isComplete)
+    motion.restart(animated: true)
+    #expect(motion.progress == 0)
+    motion.advance(by: 0.275)
+    #expect(abs(motion.progress - 0.5) < 0.0001)
+    motion.advance(by: 10)
+    #expect(motion.progress == 1)
+    #expect(motion.isComplete)
+}
+
+@Test func presentationRetargetAndReduceMotion() {
+    var motion = VehicleTransition()
+    motion.restart(animated: true)
+    motion.advance(by: 0.2)
+    #expect(motion.progress > 0 && motion.progress < 1)
+    motion.restart(animated: true)
+    #expect(motion.progress == 0)
+    motion.advance(by: -1)
+    #expect(motion.progress == 0)
+    motion.finish()
+    #expect(motion.progress == 1)
+    motion.restart(animated: false)
+    #expect(motion.isComplete)
+}
+
+@Test func fixedArtworkDemoUsesExplicitStableStyle() async throws {
+    let service = DemoVehicleService(now: presentationNow, latency: .zero)
+    let vehicle = try await service.dashboard(now: presentationNow).vehicle
+    #expect(vehicle.vehicleStyleID == "model3_cn_2022")
+    #expect(VehicleArtworkCatalog.assetName(for: vehicle, slot: .homeClosed) == "VehicleModel3CN2022HomeClosed")
+    let style = try #require(VehicleArtworkCatalog.style(for: vehicle.vehicleStyleID))
+    #expect(style.assetVersion == "static-home-v2")
+    #expect(style.canvasWidth == 1536 && style.canvasHeight == 1024)
+    #expect(style.vehicleBounds.minX == 104 && style.vehicleBounds.maxY == 937)
+    #expect(style.hasAlpha)
+    #expect(style.lampAnchors.isEmpty)
+    #expect(style.supportedStates == ["closed"])
+}
+
+@Test func fixedArtworkNeverInfersStyleFromDisplayName() {
+    var vehicle = VehicleSnapshot(now: presentationNow)
+    vehicle.body = .demo
+    for name in ["我的 Model 3", "MODEL 3", "model3_cn_2022", "Model Y"] {
+        vehicle.name = name
+        #expect(vehicle.vehicleStyleID == nil)
+        #expect(VehicleArtworkCatalog.assetName(for: vehicle, slot: .homeClosed) == nil)
+    }
+    for unknownID in ["model_y", "model3_cn_2024", "", "MODEL3_CN_2022"] {
+        vehicle.vehicleStyleID = unknownID
+        vehicle.name = "我的 Model 3"
+        #expect(VehicleArtworkCatalog.style(for: unknownID) == nil)
+        for slot in VehicleArtworkSlot.allCases {
+            #expect(VehicleArtworkCatalog.assetName(for: vehicle, slot: slot) == nil)
+        }
+    }
+    vehicle.vehicleStyleID = VehicleArtworkCatalog.demoStyleID
+    vehicle.name = "任意昵称"
+    #expect(VehicleArtworkCatalog.assetName(for: vehicle, slot: .homeClosed) != nil)
+}
+
+@Test func fixedArtworkMissingSlotsNeverReuseExterior() throws {
+    var vehicle = VehicleSnapshot(now: presentationNow, vehicleStyleID: VehicleArtworkCatalog.demoStyleID)
+    vehicle.body = .demo
+    let style = try #require(VehicleArtworkCatalog.style(for: vehicle.vehicleStyleID))
+    for slot in [VehicleArtworkSlot.homeLamps, .controlTop, .cabinTop] {
+        #expect(style.slots[slot]?.support == .unavailable)
+        #expect(style.slots[slot]?.assetName == nil)
+        #expect(VehicleArtworkCatalog.assetName(for: vehicle, slot: slot) == nil)
+    }
+}
+
+@Test func fixedArtworkRequiresEveryOpeningAndWindowKnownClosed() {
+    var vehicle = VehicleSnapshot(now: presentationNow, vehicleStyleID: VehicleArtworkCatalog.demoStyleID)
+    #expect(!vehicle.body.supportsClosedArtwork)
+    #expect(VehicleArtworkCatalog.assetName(for: vehicle, slot: .homeClosed) == nil)
+    for opening in VehicleOpening.allCases {
+        vehicle.body = .demo
+        vehicle.body.openings[opening] = true
+        #expect(!vehicle.body.supportsClosedArtwork)
+        #expect(VehicleArtworkCatalog.assetName(for: vehicle, slot: .homeClosed) == nil)
+        vehicle.body.openings[opening] = nil
+        #expect(!vehicle.body.supportsClosedArtwork)
+        #expect(VehicleArtworkCatalog.assetName(for: vehicle, slot: .homeClosed) == nil)
+    }
+    vehicle.body = .demo
+    vehicle.body.windowsVented = true
+    #expect(VehicleArtworkCatalog.assetName(for: vehicle, slot: .homeClosed) == nil)
+    vehicle.body.windowsVented = nil
+    #expect(VehicleArtworkCatalog.assetName(for: vehicle, slot: .homeClosed) == nil)
+    vehicle.body.windowsVented = false
+    #expect(vehicle.body.supportsClosedArtwork)
+    #expect(VehicleArtworkCatalog.assetName(for: vehicle, slot: .homeClosed) != nil)
+}

@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url';
 import { config, Vault, OAuthStates, TeslaClient, SafeError, isRecord, validVin } from './core.mjs';
 import { HistoryStore, tripCSV } from './history.mjs';
 import { readiness } from './readiness.mjs';
+import { createNativeRouter } from './native-router.mjs';
 
 async function readJSON(req, limit = 4096) {
   let size = 0;
@@ -27,11 +28,26 @@ function authorized(header, password) {
   return actual.length === expected.length && timingSafeEqual(actual, expected);
 }
 
-export function createApp(settings, client, vault, history = null) {
+export function createApp(settings, client, vault, history = null, nativeRouter = null) {
   const states = new OAuthStates();
+  // This exact singleton owns the legacy rotating Tesla client, vault, history,
+  // concurrency lock and budget. Never put it in native per-account ownership.
+  const ownerContext = { client, vault, history, active: false, lastProbe: -Infinity,
+    fleetActive: false, fleetWindow: Date.now(), fleetRequests: 0 };
+  nativeRouter ??= createNativeRouter(settings, { ownerContext });
+  const sharedOwnerMode = settings.ownerPairingEnabled === true;
+  function acquireFleet(probe = false) {
+    const now = Date.now();
+    if (now - ownerContext.fleetWindow >= 60_000) { ownerContext.fleetWindow = now; ownerContext.fleetRequests = 0; }
+    if (ownerContext.fleetActive || ownerContext.fleetRequests >= 30) throw new SafeError('Shared vehicle request limit', 429);
+    if (probe && (ownerContext.active || now - ownerContext.lastProbe < 15_000)) throw new SafeError('请等待至少 15 秒后再读取', 429);
+    ownerContext.fleetActive = true; ownerContext.fleetRequests++;
+    if (probe) { ownerContext.active = true; ownerContext.lastProbe = now; }
+    return () => { ownerContext.fleetActive = false; if (probe) ownerContext.active = false; };
+  }
   let probeActive = false;
   let lastProbe = 0;
-  return http.createServer(async (req, res) => {
+  const server = http.createServer({ maxHeaderSize: 16384, requestTimeout: 15000, headersTimeout: 10000 }, async (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('Referrer-Policy', 'no-referrer');
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -39,6 +55,9 @@ export function createApp(settings, client, vault, history = null) {
     const json = (value, status = 200) => { res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(value)); };
     try {
       const url = new URL(req.url, 'http://localhost');
+      // Native owns its namespace before Basic admin authentication, and only its
+      // namespaced OAuth states. Neither router can borrow the other's identity.
+      if (await nativeRouter(req, res, url)) return;
       if (url.pathname === '/healthz' && req.method === 'GET') return json({ status: settings.missing.length ? 'needs_configuration' : 'ready_for_authorization' });
       if (url.pathname === '/.well-known/appspecific/com.tesla.3p.public-key.pem' && req.method === 'GET') {
         let key;
@@ -114,7 +133,8 @@ export function createApp(settings, client, vault, history = null) {
       }
       if (url.pathname === '/api/vehicles' && req.method === 'GET') {
         if (!client) throw new SafeError('请先完成开发者应用与域名配置', 503);
-        return json({ vehicles: await client.vehicles() });
+        const release = sharedOwnerMode ? acquireFleet() : () => {};
+        try { return json({ vehicles: await client.vehicles() }); } finally { release(); }
       }
       if (url.pathname === '/api/probe' && req.method === 'POST') {
         if (!client) throw new SafeError('请先完成开发者应用与域名配置', 503);
@@ -134,12 +154,13 @@ export function createApp(settings, client, vault, history = null) {
         if (!isRecord(parsed) || !validVin(parsed.vin)) throw new SafeError('请选择有效车辆');
         // Another request may have started probing while this request body was arriving.
         if (probeActive || Date.now() - lastProbe < 15_000) throw new SafeError('请等待至少 15 秒后再读取', 429);
+        const release = sharedOwnerMode ? acquireFleet(true) : () => {};
         probeActive = true; lastProbe = Date.now();
         try {
           const result = await client.probe(parsed.vin);
           if (history) history.saveProbe(result);
           return json(result);
-        } finally { probeActive = false; }
+        } finally { probeActive = false; release(); }
       }
       throw new SafeError('未找到该接口', 404);
     } catch (e) {
@@ -147,10 +168,14 @@ export function createApp(settings, client, vault, history = null) {
       json({ error: e instanceof SafeError ? e.message : '后台内部错误，请检查配置与加密存储' }, e instanceof SafeError ? e.status : 500);
     }
   });
+  server.on('close', () => nativeRouter.close?.());
+  return server;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const settings = config();
+  const settings = { ...config(), nativeEnabled: process.env.NATIVE_ENABLED === '1',
+    ownerPairingEnabled: process.env.OWNER_PAIRING_ENABLED === '1',
+    nativeApprovedOrigin: process.env.NATIVE_APPROVED_ORIGIN };
   const vault = settings.key ? new Vault(settings.dir, settings.key) : null;
   const client = settings.missing.length ? null : new TeslaClient(settings, vault);
   const history = new HistoryStore(`${settings.dir}/history.sqlite`);

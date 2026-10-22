@@ -68,6 +68,8 @@ public enum CabinMode: String, CaseIterable, Identifiable, Sendable {
 
 public struct VehicleSnapshot: Sendable, Equatable {
     public var name = "我的 Model 3"
+    /// Stable artwork key supplied by a future vehicle mapping, never inferred from `name`.
+    public var vehicleStyleID: String?
     public var status: VehicleStatus = .online
     public var fetchedAt: Date
     public var battery: Double? = 62
@@ -85,7 +87,10 @@ public struct VehicleSnapshot: Sendable, Equatable {
     public var energyAdded: Double? = 12.4
     public var supported = Set(QuickControl.allCases)
     public var coordinate: Coordinate? = Coordinate(latitude: 30.278, longitude: 120.195)
-    public init(now: Date) { fetchedAt = now }
+    public init(now: Date, vehicleStyleID: String? = nil) {
+        fetchedAt = now
+        self.vehicleStyleID = vehicleStyleID
+    }
     public func isFresh(at now: Date, maximumAge: TimeInterval = 120) -> Bool {
         let age = now.timeIntervalSince(fetchedAt)
         return age >= 0 && age < maximumAge

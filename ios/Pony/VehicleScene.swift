@@ -1,10 +1,11 @@
 import SwiftUI
 import RealityKit
+import ImageIO
 import Combine
 import PonyCore
 
 enum VehicleCamera: String, CaseIterable, Identifiable {
-    case exterior = "外观", cabin = "座舱"
+    case exterior = "外观", overhead = "控制", cabin = "座舱"
     var id: String { rawValue }
 }
 
@@ -15,11 +16,13 @@ struct VehicleScene: UIViewRepresentable {
     let dark: Bool
     let animate: Bool
     let rotation: Float
+    var grayStudy = false
+    var darkStudy = false
 
     func makeCoordinator() -> VehicleSceneController { VehicleSceneController() }
     func makeUIView(context: Context) -> ARView { context.coordinator.makeView() }
     func updateUIView(_ view: ARView, context: Context) {
-        context.coordinator.update(vehicle, camera: camera, dark: dark, animate: animate, rotation: rotation)
+        context.coordinator.update(vehicle, camera: camera, dark: dark, animate: animate, rotation: rotation, grayStudy: grayStudy, darkStudy: darkStudy)
     }
     static func dismantleUIView(_ uiView: ARView, coordinator: VehicleSceneController) { coordinator.stop() }
 }
@@ -28,6 +31,9 @@ struct VehicleScene: UIViewRepresentable {
 final class VehicleSceneController {
     private let anchor = AnchorEntity(world: .zero)
     private let car = Entity()
+    private let exteriorStudy = Entity()
+    private var studyPaint: [ModelEntity] = []
+    private var studyIsGray = false
     private let camera = PerspectiveCamera()
     private let canopy = Entity()
     private var joints: [VehicleOpening: Entity] = [:]
@@ -39,6 +45,13 @@ final class VehicleSceneController {
     private weak var view: ARView?
     private var previous: VehicleSnapshot?
     private var previousCamera: VehicleCamera?
+    private var previousRotation: Float?
+    private var cameraStart = Transform()
+    private var cameraTarget = Transform()
+    private var transition = VehicleTransition()
+    private var shellStart: Float = 1
+    private var shellOpacity: Float = 1
+    private var shellTarget: Float = 1
     private var phase: Float = 0
     private var cabinActive = false
     private var airActive = false
@@ -79,27 +92,54 @@ final class VehicleSceneController {
         fill.position = [4, 3, 1]
         anchor.addChild(fill)
         buildCar()
+        anchor.addChild(exteriorStudy)
+        buildExteriorStudy()
+        installStudyEnvironment(on: result)
         result.scene.addAnchor(anchor)
         return result
     }
 
     func stop() { subscription?.cancel(); subscription = nil }
 
-    func update(_ vehicle: VehicleSnapshot, camera mode: VehicleCamera, dark: Bool, animate: Bool, rotation: Float) {
+    func update(_ vehicle: VehicleSnapshot, camera mode: VehicleCamera, dark: Bool, animate: Bool, rotation: Float, grayStudy: Bool = false, darkStudy: Bool = false) {
         self.animate = animate
+        // A deliberately fixed closed exterior study, never used to imply opening articulation.
+        let studyVisible = mode != .cabin && !vehicle.body.openings.values.contains(true) && vehicle.body.windowsVented != true
+        if exteriorStudy.isEnabled != studyVisible { previousCamera = nil }
+        exteriorStudy.isEnabled = studyVisible
+        car.isEnabled = !studyVisible
+        if studyIsGray != grayStudy {
+            studyIsGray = grayStudy
+            for panel in studyPaint { panel.model?.materials = [Self.studyFinish(gray: grayStudy)] }
+        }
         cabinActive = mode == .cabin
         airActive = vehicle.cabinMode != .off && vehicle.canControl(at: .now)
-        car.orientation = simd_quatf(angle: rotation, axis: [0, 1, 0])
-        view?.environment.background = .color(dark ? UIColor(red: 0.10, green: 0.115, blue: 0.135, alpha: 1) : UIColor(red: 0.925, green: 0.935, blue: 0.945, alpha: 1))
-        if previousCamera != mode {
-            var target = Transform()
+        view?.environment.background = .color((dark || darkStudy) ? UIColor(red: 0.090, green: 0.094, blue: 0.098, alpha: 1) : UIColor(red: 0.925, green: 0.935, blue: 0.945, alpha: 1))
+        if previousCamera != mode || (mode == .exterior && previousRotation != rotation) {
             let pose = Entity()
-            if mode == .cabin { pose.look(at: [0, 0.55, 0], from: [0, 6.4, 2.0], relativeTo: nil) }
-            else { pose.look(at: [0, 0.65, 0], from: [-4.6, 2.8, -5.7], relativeTo: nil) }
-            target = pose.transform
-            camera.move(to: target, relativeTo: anchor, duration: previousCamera == nil || !animate ? 0 : 0.55, timingFunction: .easeInOut)
-            canopy.isEnabled = mode == .exterior
+            switch mode {
+            case .cabin:
+                pose.look(at: [0, 0.55, 0], from: [0, 6.4, 2.0], relativeTo: nil)
+            case .overhead:
+                pose.look(at: [0, 0.65, 0], from: [0, 8.8, 0.01], relativeTo: nil)
+            case .exterior:
+                // Orbit the camera, not the vehicle: returning restores the user's exterior angle.
+                let orbit = simd_quatf(angle: studyVisible ? 0 : -rotation, axis: [0, 1, 0])
+                pose.look(at: [0, 0.65, 0], from: orbit.act(studyVisible ? [-4.9, 3.65, -4.7] : [-4.9, 3.5, -6.1]), relativeTo: nil)
+            }
+            // We own the rendered transform each frame; interruption starts exactly here.
+            cameraStart = camera.transform
+            cameraTarget = pose.transform
+            shellStart = shellOpacity
+            shellTarget = mode == .cabin ? 0 : 1
+            transition.restart(animated: previousCamera != nil && animate)
             previousCamera = mode
+            previousRotation = rotation
+            renderTransition()
+        }
+        if !animate {
+            transition.finish()
+            renderTransition()
         }
         if previous?.body != vehicle.body || previous?.cabinMode != vehicle.cabinMode {
             for (opening, joint) in joints {
@@ -129,15 +169,36 @@ final class VehicleSceneController {
         }
         for particle in air { particle.isEnabled = airActive }
         // A stationary particle trail remains available with Reduce Motion enabled.
-        if animate && airActive && subscription == nil, let view {
+        if animate && (airActive || !transition.isComplete) && subscription == nil, let view {
             subscription = view.scene.subscribe(to: SceneEvents.Update.self) { [weak self] event in
                 MainActor.assumeIsolated { self?.advance(Float(event.deltaTime)) }
             }
-        } else if !animate || !airActive { stop() }
+        } else if !animate || (!airActive && transition.isComplete) { stop() }
         placeAir()
     }
 
-    private func advance(_ delta: Float) { phase = (phase + min(delta, 0.05) * 0.4).truncatingRemainder(dividingBy: 1); placeAir() }
+    private func advance(_ delta: Float) {
+        transition.advance(by: Double(min(delta, 0.05)))
+        renderTransition()
+        if airActive {
+            phase = (phase + min(delta, 0.05) * 0.4).truncatingRemainder(dividingBy: 1)
+            placeAir()
+        }
+        if transition.isComplete && !airActive { stop() }
+    }
+
+    private func renderTransition() {
+        let t = Float(transition.progress)
+        camera.transform = Transform(scale: .one,
+            rotation: simd_slerp(cameraStart.rotation, cameraTarget.rotation, t),
+            translation: cameraStart.translation + (cameraTarget.translation - cameraStart.translation) * t)
+        shellOpacity = shellStart + (shellTarget - shellStart) * t
+        // Fade the complete upper shell together, preserving door/window sensor transforms.
+        for shell in [canopy] + windows {
+            shell.components.set(OpacityComponent(opacity: shellOpacity))
+            shell.isEnabled = shellOpacity > 0
+        }
+    }
     private func placeAir() {
         for (index, particle) in air.enumerated() {
             let t = (Float(index % 6) / 6 + phase).truncatingRemainder(dividingBy: 1)
@@ -322,4 +383,219 @@ final class VehicleSceneController {
         else { model = ModelEntity() }
         model.name = name; parent.addChild(model); return model
     }
+
+    // MARK: - Closed exterior study (procedural approximation, not a production vehicle asset)
+    private static func studyFinish(gray: Bool) -> PhysicallyBasedMaterial {
+        var material = PhysicallyBasedMaterial()
+        material.baseColor = .init(tint: gray ? UIColor(white: 0.43, alpha: 1) : UIColor(red: 0.018, green: 0.029, blue: 0.022, alpha: 1))
+        material.metallic = .init(floatLiteral: gray ? 0 : 0.65)
+        material.roughness = .init(floatLiteral: gray ? 0.62 : 0.27)
+        material.clearcoat = .init(floatLiteral: gray ? 0 : 0.85)
+        material.clearcoatRoughness = .init(floatLiteral: 0.22)
+        material.faceCulling = .none
+        return material
+    }
+
+    /// Cubic longitudinal stations keep hood, cowl, roof and rear quarters tangent-continuous.
+    private static func station(_ z: Float, _ values: [(Float, Float)]) -> Float {
+        let i = max(0, min(values.count - 2, (0..<(values.count - 1)).first { z <= values[$0 + 1].0 } ?? values.count - 2))
+        let t = max(0, min(1, (z - values[i].0) / (values[i + 1].0 - values[i].0)))
+        let before = max(0, i - 1), after = min(values.count - 1, i + 2)
+        let span = values[i + 1].0 - values[i].0
+        let m1 = (values[i + 1].1-values[before].1)/(values[i + 1].0-values[before].0)
+        let m2 = (values[after].1-values[i].1)/(values[after].0-values[i].0)
+        let t2 = t*t, t3 = t*t*t
+        let a = (2*t3-3*t2+1)*values[i].1
+        let b = (t3-2*t2+t)*span*m1
+        let c = (-2*t3+3*t2)*values[i + 1].1
+        let d = (t3-t2)*span*m2
+        return a+b+c+d
+    }
+
+    /// Angle 0 is right rocker, pi/2 centerline and pi left rocker. Front is -Z.
+    private static func skin(_ z: Float, _ angle: Float, lift: Float = 0) -> SIMD3<Float> {
+        let width = station(z, [(-2.36,0.02),(-2.28,0.48),(-2.08,0.77),(-1.55,0.905),(-0.75,0.90),(0.5,0.90),(1.45,0.905),(2.10,0.78),(2.30,0.44),(2.36,0.02)])
+        let crown = station(z, [(-2.36,0.48),(-2.18,0.71),(-1.55,0.85),(-1.05,0.92),(-0.50,1.30),(0.05,1.445),(0.60,1.43),(1.05,1.27),(1.55,0.93),(2.10,0.83),(2.36,0.56)])
+        let cabin = max(0, crown - 0.92)
+        let a = max(0, sin(angle))
+        // Broad shoulders; narrower glasshouse. Not independent hood/roof boxes.
+        let lateral = cos(angle)
+        let x = width * (lateral < 0 ? -1 : 1) * pow(abs(lateral), 0.55) * (1 - 0.08 * cabin / 0.525 * a)
+        let ramp = max(0, min(1, (a - 0.43) / 0.47))
+        let roofBlend = ramp * ramp * (3 - 2 * ramp)
+        let y = 0.26 + (crown - cabin - 0.26) * pow(a, 0.22) + cabin * roofBlend
+        return [x, y + lift, z]
+    }
+
+    @discardableResult private func studySurface(_ name: String, u: Int = 100, v: Int = 40,
+        material: PhysicallyBasedMaterial, painted: Bool = false,
+        cutArches: Bool = false, point: (Float, Float) -> SIMD3<Float>) -> ModelEntity {
+        var p: [SIMD3<Float>] = [], n: [SIMD3<Float>] = [], triangles: [UInt32] = []
+        for i in 0...u { for j in 0...v { p.append(point(Float(i)/Float(u), Float(j)/Float(v))) } }
+        n = Array(repeating: .zero, count: p.count)
+        for i in 0..<u { for j in 0..<v {
+            let a = i*(v+1)+j, b = a+v+1
+            for tri in [[a,a+1,b],[a+1,b+1,b]] {
+                let center = (p[tri[0]]+p[tri[1]]+p[tri[2]])/3
+                let dz = min(abs(center.z + 1.43), abs(center.z - 1.43))
+                if cutArches && abs(center.x) > 0.69 && dz < 0.375 && center.y < 0.35 + sqrt(max(0, 0.375*0.375 - dz*dz)) { continue }
+                let normal = simd_cross(p[tri[1]]-p[tri[0]], p[tri[2]]-p[tri[0]])
+                for k in tri { n[k] += normal; triangles.append(UInt32(k)) }
+            }
+        } }
+        n = n.map { simd_length_squared($0) > 0.00000001 ? simd_normalize($0) : [0,1,0] }
+        var descriptor = MeshDescriptor(name: name)
+        descriptor.positions = MeshBuffers.Positions(p)
+        descriptor.normals = MeshBuffers.Normals(n)
+        descriptor.primitives = .triangles(triangles)
+        let model: ModelEntity
+        if let mesh = try? MeshResource.generate(from: [descriptor]) { model = ModelEntity(mesh: mesh, materials: [material]) }
+        else { model = ModelEntity() }
+        model.name = name; exteriorStudy.addChild(model)
+        if painted { studyPaint.append(model) }
+        return model
+    }
+
+    private func buildExteriorStudy() {
+        exteriorStudy.name = "fixed_closed_exterior_study_not_production"
+        let finish = Self.studyFinish(gray: false)
+        var dark = PhysicallyBasedMaterial()
+        dark.baseColor = .init(tint: UIColor(white: 0.025, alpha: 1))
+        dark.roughness = .init(floatLiteral: 0.30); dark.faceCulling = .none
+        var glazing = dark
+        glazing.baseColor = .init(tint: UIColor(red: 0.035, green: 0.044, blue: 0.046, alpha: 1))
+        glazing.roughness = .init(floatLiteral: 0.18)
+        glazing.metallic = .init(floatLiteral: 0.22)
+        studySurface("continuous_sedan_shell", u: 220, v: 96, material: finish, painted: true, cutArches: true) { u,v in
+            Self.skin(-2.36 + 4.72*u, v * .pi)
+        }
+        // A connected windscreen, panoramic roof and backlight with a thin painted perimeter.
+        studySurface("windscreen_roof_backlight", material: glazing) { u,v in
+            let z = -1.01 + u*2.48
+            let taper = sin(u * .pi)
+            let half: Float = 0.57 + 0.035*taper
+            return Self.skin(z, .pi/2 + (v*2-1)*half, lift: 0.009)
+        }
+        for side: Float in [-1,1] {
+            studySurface("hood_panel_gap", u: 64, v: 2, material: dark) { u,v in
+                let a: Float = 0.98 + (v-0.5)*0.005
+                return Self.skin(-2.12+u*1.10,side > 0 ? a : .pi-a,lift: 0.004)
+            }
+        }
+        var sideGlazing = glazing
+        sideGlazing.baseColor = .init(tint: UIColor(red: 0.12, green: 0.13, blue: 0.135, alpha: 1))
+        sideGlazing.roughness = .init(floatLiteral: 0.28)
+        for sign: Float in [-1,1] {
+            studySurface("side_window_2022", u: 84, v: 24, material: sideGlazing) { u,v in
+                let z = -0.85 + u*2.14
+                let height = pow(max(0, sin(u * .pi)), 0.65)
+                let angle: Float = 0.52 + v*0.48*height
+                return Self.skin(z, sign > 0 ? angle : .pi-angle, lift: 0.009)
+            }
+            studySurface("black_b_pillar", u: 3, v: 24, material: dark) { u,v in
+                let a: Float = 0.52 + v*0.47
+                return Self.skin(0.22 + (u-0.5)*0.044, sign > 0 ? a : .pi-a, lift: 0.015)
+            }
+            for wheelZ: Float in [-1.43,1.43] {
+                // The lip follows the cutout in the very same skin, not a separate box fender.
+                studySurface("wheel_arch_lip", u: 70, v: 3, material: finish, painted: true) { u,v in
+                    let t = u * .pi
+                    let z = wheelZ + cos(t)*(0.376+v*0.014)
+                    let y = 0.35 + sin(t)*(0.376+v*0.014)
+                    var low: Float = 0, high: Float = .pi/2
+                    for _ in 0..<14 {
+                        let mid = (low+high)/2
+                        if Self.skin(z,mid).y < y { low = mid } else { high = mid }
+                    }
+                    return Self.skin(z,sign > 0 ? (low+high)/2 : .pi-(low+high)/2,lift: 0.004)
+                }
+            }
+            // Narrow actual panel gaps, not reflection marks.
+            for z: Float in [-0.87,0.24,1.27] {
+                studySurface("door_gap", u: 2, v: 24, material: dark) { u,v in
+                    Self.skin(z + (u-0.5)*0.007, sign > 0 ? 0.08+v*0.25 : .pi-(0.08+v*0.25), lift: 0.004)
+                }
+            }
+            for z: Float in [-0.02,0.99] {
+                let handle = ModelEntity(mesh: .generateBox(size: [0.012,0.018,0.14], cornerRadius: 0.007), materials: [dark])
+                handle.position = [sign*0.884,0.875,z]; exteriorStudy.addChild(handle)
+            }
+            let stalk = ModelEntity(mesh: .generateBox(size: [0.13,0.035,0.07], cornerRadius: 0.015), materials: [dark])
+            stalk.position = [sign*0.79,1.00,-0.62]; exteriorStudy.addChild(stalk)
+            let mirror = ModelEntity(mesh: .generateSphere(radius: 1), materials: [finish])
+            mirror.scale = [0.15,0.063,0.115]; mirror.position = [sign*0.88,1.025,-0.62]
+            exteriorStudy.addChild(mirror); studyPaint.append(mirror)
+            // Pre-refresh lamps are broad tapered teardrops swept back over the front fenders.
+            var lens = glazing
+            lens.baseColor = .init(tint: UIColor(white: 0.47, alpha: 1)); lens.metallic = .init(floatLiteral: 0.45)
+            studySurface("2022_teardrop_headlamp", u: 40, v: 20, material: lens) { u,v in
+                let z = -2.19 + u*0.63
+                let span = 0.10 + 0.31*pow(sin(u * .pi),0.8)
+                let a = 0.63 + (v-0.5)*span
+                return Self.skin(z, sign > 0 ? a : .pi-a, lift: 0.012)
+            }
+            var red = dark; red.baseColor = .init(tint: UIColor(red: 0.38,green: 0.012,blue: 0.015,alpha: 1))
+            studySurface("rear_lamp", u: 24, v: 8, material: red) { u,v in
+                Self.skin(1.94+u*0.30, sign > 0 ? 0.48+v*0.12 : .pi-(0.48+v*0.12), lift: 0.008)
+            }
+            for z: Float in [-1.43,1.43] { studyWheel(sign: sign,z: z) }
+        }
+        studySurface("curved_lower_intake", u: 60, v: 8, material: dark) { u,v in
+            let a: Float = 0.84 + u*1.46
+            let p = Self.skin(-2.30+0.065*abs(u*2-1),a)
+            return [p.x,0.335+v*0.055,p.z-0.012]
+        }
+        // No opaque proxy floor: the simulator cannot render grounded shadows reliably.
+        // A soft grounding treatment remains a known visual gap for this study.
+
+    }
+
+    private func studyWheel(sign: Float, z: Float) {
+        let tire = ModelEntity(mesh: .generateCylinder(height: 0.215,radius: 0.345),materials: [rubber])
+        tire.position = [sign*0.815,0.35,z]
+        tire.orientation = simd_quatf(angle: .pi/2,axis: [0,0,1]); exteriorStudy.addChild(tire)
+        var gray = PhysicallyBasedMaterial()
+        gray.baseColor = .init(tint: UIColor(white: 0.28,alpha: 1))
+        gray.metallic = .init(floatLiteral: 0.65); gray.roughness = .init(floatLiteral: 0.43)
+        let disc = ModelEntity(mesh: .generateCylinder(height: 0.018,radius: 0.267),materials: [gray])
+        disc.position = [0,-sign*0.114,0]; tire.addChild(disc)
+        for i in 0..<10 {
+            let spoke = ModelEntity(mesh: .generateBox(size: [0.055,0.012,0.225],cornerRadius: 0.013), materials: [gray])
+            let angle = Float(i)*2 * .pi/10
+            spoke.position = [sin(angle)*0.12,-sign*0.129,cos(angle)*0.12]
+            spoke.orientation = simd_quatf(angle: angle+0.16,axis: [0,1,0]); tire.addChild(spoke)
+        }
+        let hub = ModelEntity(mesh: .generateCylinder(height: 0.025,radius: 0.065),materials: [gray])
+        hub.position = [0,-sign*0.13,0]; tire.addChild(hub)
+    }
+
+    /// Original analytic studio lighting, generated locally; never uses a user photograph.
+    /// A Radiance RGBE panorama provides real broad PBR reflections instead of painted bands.
+    private func installStudyEnvironment(on view: ARView) {
+        let width = 256, height = 128
+        var data = Data("#?RADIANCE\nFORMAT=32-bit_rle_rgbe\n\n-Y \(height) +X \(width)\n".utf8)
+        for y in 0..<height { for x in 0..<width {
+            let u = Float(x)/Float(width), v = Float(y)/Float(height)
+            let key = exp(-pow((u-0.24)/0.13, 4)-pow((v-0.26)/0.12, 4))
+            let fill = exp(-pow((u-0.73)/0.20, 4)-pow((v-0.35)/0.16, 4))
+            let value: Float = 0.13 + 3.5*key + 1.5*fill
+            var exponent: Int32 = 0
+            let fraction = frexpf(value, &exponent)*256/value
+            data.append(contentsOf: [UInt8(min(255,value*fraction)),UInt8(min(255,value*fraction)),UInt8(min(255,value*fraction)),UInt8(max(0,min(255,exponent+128)))])
+        } }
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("pony-original-softboxes.hdr")
+        do {
+            try data.write(to: url, options: .atomic)
+            guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+                  let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else { return }
+            Task { @MainActor [weak view] in
+                guard let resource = try? await EnvironmentResource(equirectangular: image) else { return }
+                view?.environment.lighting.resource = resource
+                view?.environment.lighting.intensityExponent = 0
+            }
+        } catch {
+            // Directional key and point fill remain available if HDR decoding is unsupported.
+        }
+    }
+
 }
