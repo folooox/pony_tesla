@@ -5,6 +5,9 @@ import { join } from 'node:path';
 export const AUTH = 'https://auth.tesla.cn/oauth2/v3';
 export const FLEET = 'https://fleet-api.prd.cn.vn.cloud.tesla.cn';
 export const SCOPES = 'openid offline_access vehicle_device_data vehicle_location';
+export const NATIVE_SCOPES = `${SCOPES} vehicle_cmds`;
+// Internal status evidence only; never infer denial from a message or token claims.
+const upstreamStatus = new WeakMap();
 export const isRecord = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 export const validVin = value => typeof value === 'string' && /^[A-HJ-NPR-Z0-9]{17}$/.test(value);
 
@@ -86,7 +89,9 @@ export async function requestJSON(url, options = {}, transport = fetch) {
   catch { throw new SafeError('无法连接 Tesla，请检查网络后重试', 502); }
   if (!response.ok) {
     const hints = { 401: '授权无效或已撤销，请重新授权', 403: '应用注册或账号授权权限不足', 408: '车辆暂时不可达，请在车辆在线后重试', 429: '请求过于频繁，请稍后重试' };
-    throw new SafeError(`Tesla HTTP ${response.status}：${hints[response.status] || '请求失败，请检查官方应用配置或车辆状态'}`, 502);
+    const error = new SafeError(`Tesla HTTP ${response.status}：${hints[response.status] || '请求失败，请检查官方应用配置或车辆状态'}`, 502);
+    upstreamStatus.set(error, response.status);
+    throw error;
   }
   try { return await response.json(); }
   catch { throw new SafeError('Tesla 返回的数据格式无效', 502); }
@@ -143,6 +148,22 @@ export class TeslaClient {
       headers: { Authorization: `Bearer ${token}`, ...(body ? { 'Content-Type': 'application/json' } : {}) },
       ...(body ? { body: JSON.stringify(body) } : {}),
     }, this.transport);
+  }
+  // Native router must durably consume the login-family claim BEFORE invoking.
+  // One dispatch only: never retry on 401, refresh, timeout or ambiguous response.
+  async loginWake(vin) {
+    if (!validVin(vin)) throw new SafeError('请选择有效车辆');
+    let token;
+    try { token = await this.accessToken(); } catch { return 'wake_unknown'; }
+    try {
+      const result = await requestJSON(`${FLEET}/api/1/vehicles/${vin}/wake_up`, {
+        method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: '{}',
+      }, this.transport);
+      // A valid wake response is acceptance, NOT evidence of live data success.
+      return isRecord(result) && isRecord(result.response) && result.response.vin === vin
+        && ['online', 'asleep', 'waking', 'offline', 'unknown'].includes(result.response.state)
+        ? 'wake_accepted' : 'wake_unknown';
+    } catch (error) { return upstreamStatus.get(error) === 403 ? 'wake_denied' : 'wake_unknown'; }
   }
   async vehicles() {
     const result = await this.api('/api/1/vehicles');

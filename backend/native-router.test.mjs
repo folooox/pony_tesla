@@ -33,6 +33,7 @@ async function fixture(action, options = {}) {
   const auth = new NativeAuth(join(dir, 'native', 'sessions.sqlite'), { clock: () => time });
   const contexts = new Map(), lists = { A: [vin, otherVin], B: [vin] };
   let probeCalls = 0, listCalls = 0, releaseProbe = null, releaseList = null;
+  let wakeCalls = 0, wakePhase = 'wake_accepted', vehicleState = 'online';
   const router = createNativeRouter(settings, { auth, clock: () => time,
     diagnostics: options.diagnostics ?? (() => {}), verifier: options.verifier,
     transport: async (url, request) => {
@@ -56,7 +57,12 @@ async function fixture(action, options = {}) {
         serialized: action => action(),
         vehicles: async () => {
           listCalls++; if (releaseList) await releaseList;
-          return lists[await who()].map(v => ({ vin: v, state: 'online' }));
+          return lists[await who()].map(v => ({ vin: v, state: vehicleState }));
+        },
+        loginWake: async selected => {
+          assert.ok(lists[await who()].includes(selected)); wakeCalls++;
+          if (wakePhase instanceof Error) throw wakePhase;
+          return wakePhase;
         },
         probe: async selected => {
           probeCalls++; if (releaseProbe) await releaseProbe;
@@ -89,7 +95,7 @@ async function fixture(action, options = {}) {
     const location = new URL(browser.headers.get('location'));
     assert.equal(`${location.origin}${location.pathname}`, 'https://auth.tesla.cn/oauth2/v3/authorize');
     assert.equal(location.searchParams.get('redirect_uri'), `${settings.origin}/oauth/callback`);
-    assert.equal(location.searchParams.get('scope').includes('vehicle_cmds'), false);
+    assert.equal(location.searchParams.get('scope').includes('vehicle_cmds'), true);
     nonce = location.searchParams.get('nonce');
     return { state: location.searchParams.get('state'), cookie: browser.headers.get('set-cookie').split(';')[0], browser, value };
   }
@@ -108,6 +114,7 @@ async function fixture(action, options = {}) {
     assert.equal(result.status, 200); return result.json();
   }
   try { await action({ dir, settings, auth, contexts, lists, providerCalls, request, post, get, begin, callback, login, basic,
+    setVehicleState: value => { vehicleState = value; }, setWakePhase: value => { wakePhase = value; }, wakeCalls: () => wakeCalls,
     setTime: value => { time = value; }, advance: value => { time += value; },
     invalidIdentity: () => { invalidIdentity = true; }, setProbeWait: value => { releaseProbe = value; }, setListWait: value => { releaseList = value; },
     counters: () => ({ legacyWrites, legacyExchanges, exchangeCalls, probeCalls, listCalls }) }); }
@@ -503,3 +510,101 @@ test('router independently sanitizes every observation field and isolates both l
     }, { cnKeys: [], globalKeys: [jwk], diagnostics });
   }
 });
+
+
+test('login-sync online consumes once with phase-only response; no wake or live-read success and VIN cannot change', async () => fixture(async f => {
+  const a = await f.login('A');
+  assert.equal((await (await f.get('/session', a.access_token)).json()).features.login_sync, true);
+  const sync = selected => f.post(`/vehicles/${selected}/login-sync`, {}, { bearer: a.access_token });
+  const first = await sync(vin); assert.equal(first.status, 200);
+  assert.deepEqual(await first.json(), { vin, phase: 'online' });
+  f.setVehicleState('asleep');
+  assert.deepEqual(await (await sync(vin)).json(), { vin, phase: 'online' });
+  assert.deepEqual(await (await sync(otherVin)).json(), { vin: otherVin, phase: 'not_eligible' });
+  assert.equal(f.wakeCalls(), 0); assert.equal(f.counters().probeCalls, 0);
+}));
+
+test('login-sync one wake per exchanged family with refresh/repeat isolation; current account and membership authoritative', async () => fixture(async f => {
+  const a = await f.login('A'), b = await f.login('B'); f.setVehicleState('asleep');
+  const sync = (session, selected = vin) => f.post(`/vehicles/${selected}/login-sync`, {}, { bearer: session.access_token });
+  assert.equal((await sync(b, otherVin)).status, 403); assert.equal(f.wakeCalls(), 0);
+  const accepted = await sync(a); assert.equal(accepted.status, 200);
+  assert.deepEqual(await accepted.json(), { vin, phase: 'wake_accepted' });
+  assert.equal(f.wakeCalls(), 1); assert.equal(f.counters().probeCalls, 0);
+  const refreshed = await (await f.post('/auth/refresh', { refresh_token: a.refresh_token })).json();
+  assert.deepEqual(await (await sync(refreshed)).json(), { vin, phase: 'wake_accepted' });
+  assert.deepEqual(await (await sync(refreshed, otherVin)).json(), { vin: otherVin, phase: 'not_eligible' });
+  assert.equal(f.wakeCalls(), 1);
+  assert.deepEqual(await (await sync(b)).json(), { vin, phase: 'wake_accepted' }); assert.equal(f.wakeCalls(), 2);
+  f.lists.A = [];
+  assert.deepEqual(await (await sync(refreshed)).json(), { vin, phase: 'wake_accepted' });
+  const freshA = await f.login('A'); assert.equal((await sync(freshA)).status, 403); assert.equal(f.wakeCalls(), 2);
+}));
+
+test('unknown/denied/malformed wake outcomes permanently consume claim, never leak or resend', async () => {
+  for (const value of ['wake_unknown', 'wake_denied', 'secret-provider-state', new Error('secret-upstream')]) {
+    await fixture(async f => {
+      const a = await f.login(); f.setVehicleState('unknown'); f.setWakePhase(value);
+      const sync = () => f.post(`/vehicles/${vin}/login-sync`, {}, { bearer: a.access_token });
+      const expected = ['wake_unknown', 'wake_denied'].includes(value) ? value : 'wake_unknown';
+      assert.deepEqual(await (await sync()).json(), { vin, phase: expected });
+      f.advance(600001);
+      assert.deepEqual(await (await sync()).json(), { vin, phase: expected });
+      assert.equal(f.wakeCalls(), 1); assert.equal(f.counters().probeCalls, 0);
+    });
+  }
+});
+
+test('login-sync rejects body options, wrong method/query/legacy/auth/control routes; old/direct and expired sessions ineligible', async () => fixture(async f => {
+  const a = await f.login(); f.setVehicleState('asleep');
+  const path = `/vehicles/${vin}/login-sync`;
+  assert.equal((await f.post(path, {})).status, 401);
+  assert.equal((await f.get(path, a.access_token)).status, 404);
+  assert.equal((await f.post(`${path}?retry=true`, {}, { bearer: a.access_token })).status, 400);
+  for (const input of [{ vin: otherVin }, { account_id: 'other' }, { retry: true }, { command: 'unlock' }]) {
+    assert.equal((await f.post(path, input, { bearer: a.access_token })).status, 400);
+  }
+  for (const suffix of ['wake_up', 'command/unlock', 'command/door_unlock', 'command/auto_conditioning_start']) {
+    assert.equal((await f.post(`/vehicles/${vin}/${suffix}`, {}, { bearer: a.access_token })).status, 404);
+  }
+  assert.equal((await f.request(`/api/vehicles/${vin}/login-sync`, { method: 'POST', body: {}, headers: { authorization: f.basic, origin: f.settings.origin } })).status, 404);
+  const old = f.auth.issue(a.account_id);
+  const rotated = await (await f.post('/auth/refresh', { refresh_token: old.refresh_token })).json();
+  assert.deepEqual(await (await f.post(path, {}, { bearer: rotated.access_token })).json(), { vin, phase: 'not_eligible' });
+  f.advance(600000);
+  assert.deepEqual(await (await f.post(path, {}, { bearer: a.access_token })).json(), { vin, phase: 'not_eligible' });
+  assert.equal(f.wakeCalls(), 0);
+}));
+
+test('pending committed claim returns unknown without dispatch after lost/crashed response', async () => fixture(async f => {
+  const a = await f.login(); f.setVehicleState('asleep');
+  const session = f.auth.authenticate(a.access_token);
+  assert.equal(f.auth.claimLoginSync(session, vin, false).dispatch, true);
+  assert.deepEqual(await (await f.post(`/vehicles/${vin}/login-sync`, {}, { bearer: a.access_token })).json(), { vin, phase: 'wake_unknown' });
+  assert.equal(f.wakeCalls(), 0);
+}));
+
+
+test('membership provider failures remain generic, leave eligibility unclaimed and never wake', async () => fixture(async f => {
+  const a = await f.login(); f.setVehicleState('asleep');
+  const client = f.contexts.get(a.account_id).client, vehicles = client.vehicles;
+  client.vehicles = async () => { throw new Error('secret-provider-state-and-token'); };
+  const result = await f.post(`/vehicles/${vin}/login-sync`, {}, { bearer: a.access_token });
+  assert.equal(result.status, 502); assert.deepEqual(await result.json(), { error: 'Vehicle membership unavailable' });
+  assert.equal(f.auth.loginSyncPhase(f.auth.authenticate(a.access_token), vin), null);
+  assert.equal(f.wakeCalls(), 0); client.vehicles = vehicles;
+}));
+
+
+test('durable duplicate bypasses Fleet lock/budget and membership I/O but revoked bearer still fails', async () => fixture(async f => {
+  const a = await f.login(); f.setVehicleState('asleep');
+  const context = f.contexts.get(a.account_id), session = f.auth.authenticate(a.access_token);
+  assert.equal(f.auth.claimLoginSync(session, vin, false).dispatch, true);
+  const calls = f.counters().listCalls;
+  context.fleetActive = true; context.fleetRequests = 30;
+  context.client.vehicles = async () => { throw new Error('Must not fetch membership on duplicate'); };
+  const sync = () => f.post(`/vehicles/${vin}/login-sync`, {}, { bearer: a.access_token });
+  assert.deepEqual(await (await sync()).json(), { vin, phase: 'wake_unknown' });
+  assert.equal(f.counters().listCalls, calls); assert.equal(f.wakeCalls(), 0);
+  f.auth.revoke(session.family); assert.equal((await sync()).status, 401);
+}));

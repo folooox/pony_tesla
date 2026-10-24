@@ -1,0 +1,17 @@
+{
+  "backend/core.mjs": "444fa094d2d95138d3c57b307c1d798bd2a37a1cd779e4564cc32c34fa7c49bc",
+  "backend/core.test.mjs": "a1fa5bc4e18ffd9e73e2ec1ad0a1a8345b9bc4b8d83594d6873aa1e144f1b13c",
+  "backend/native-auth.mjs": "abc48fb4fe93c6747f4147073cbd124a7411e8509ea56da1b95de83dade566d0",
+  "backend/native-auth.test.mjs": "19e8478325fb98e7b33d0c364942f0e2883c35c19b7b15d58a9236ab4fec87a4",
+  "backend/native-router.mjs": "3fecc433971939b6018f6c96bb53383b82a29fea68621c2e1c26f8ba48e7a924",
+  "backend/native-router.test.mjs": "1518cb3ac5f59bf594f01290c93242d8abe3a3ddcc6b0506d020bdb4df723fd8",
+  "ios/Pony/NativeAccountViews.swift": "040a15bd7103190b3429b7ee4628394b299c7d312c51b2fdfeb8731a8aad9344",
+  "ios/Pony/NativeTeslaClient.swift": "b1760b33b6ae15e4fcd9c690d9a4f53c7cbd56976aad7a53ed2268b57221e365",
+  "ios/Pony/PonyApp.swift": "10a9c5cf07fa7183116eca208875b81cd019c1c5dc3b0c9e5c142db8e923a798",
+  "ios/PonyCore/Sources/PonyCore/ReadOnlyVehicleData.swift": "07482bee093e659fcaee3a9bf5b1608603b0cef02e3a45d9a0edc2cf9b4bcda6",
+  "ios/PonyCore/Tests/PonyCoreTests/ReadOnlyVehicleDataTests.swift": "f605ccb2465115739f3b05a243940768723cdbe049fbaa793ef1ef28182aa4fc",
+  "checks-login-wake/Fixture.swift": "afbd9c6a3aeac62494588bcc90a60bc03068d475c8b6db58905f0e6206d470c3",
+  "checks-login-wake/run-macos.sh": "2620e5a758a594c57e8634254cdd834ca497e7fc135c184a29bb7d94559e5fa7",
+  "checks-login-wake/run.py": "7d25d6df68eaa60dc1519a0877d1ffd521d796ccef4f0259dbd7dcf6c740f2ae",
+  "checks-login-wake/verify-base.sh": "747c3ab774e20bba44d10e3aa0fe265dabbdd8f5bac686b5f166cfce117a46d8"
+}

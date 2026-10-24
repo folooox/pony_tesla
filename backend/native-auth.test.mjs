@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { generateKeyPairSync, sign } from 'node:crypto';
+import { spawn } from 'node:child_process';
 import { DatabaseSync } from 'node:sqlite';
 import { mkdtemp, rm, stat, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -268,6 +269,7 @@ test('additive quota migration retains existing sessions and counts previous ref
     old.close(); old = null;
     auth = new NativeAuth(path, { clock: () => now });
     assert.equal(auth.authenticate('p'.repeat(43)).account, 'fixture-account');
+    assert.equal(auth.loginSyncPhase(auth.authenticate('p'.repeat(43)), 'LRW3E7FA0NC123456'), 'not_eligible');
     assert.equal(auth.db.prepare('SELECT rotations FROM families').get().rotations, 2);
     const rotated = auth.refresh('m'.repeat(43));
     assert.equal(auth.db.prepare('SELECT rotations FROM families').get().rotations, 3);
@@ -465,4 +467,101 @@ test('global endpoint is never contacted on normal CN success or non-missing fai
   await assert.rejects(() => identity.verify(jwt(claims('n'), undefined, other.privateKey), 'n'), { reason: 'SIGNATURE' });
   await assert.rejects(() => identity.verify('bad', 'n'), { reason: 'JWT_FORMAT' });
   assert.equal(globals, 0);
+});
+
+
+const loginVin = 'LRW3E7FA0NC123456', loginOtherVin = 'LRW3E7FA0NC123457';
+test('login eligibility is exchange-only, family/account/VIN bound, refresh never mints, ten minute expiry', () => {
+  let time = now; const auth = new NativeAuth(':memory:', { clock: () => time });
+  try {
+    const input = grant(auth), exchanged = auth.exchange(input);
+    const session = auth.authenticate(exchanged.access_token);
+    const direct = auth.issue(input.account), old = auth.authenticate(direct.access_token);
+    assert.equal(auth.loginSyncPhase(old, loginVin), 'not_eligible');
+    const restored = auth.refresh(direct.refresh_token);
+    assert.equal(auth.loginSyncPhase(auth.authenticate(restored.access_token), loginVin), 'not_eligible');
+    assert.equal(auth.loginSyncPhase({ ...session, account: 'another-account' }, loginVin), 'not_eligible');
+    const refreshed = auth.refresh(exchanged.refresh_token), rotated = auth.authenticate(refreshed.access_token);
+    assert.equal(auth.loginSyncPhase(rotated, loginVin), null);
+    assert.deepEqual(auth.claimLoginSync(rotated, loginVin, false), { dispatch: true, phase: 'wake_unknown' });
+    assert.deepEqual(auth.claimLoginSync(session, loginOtherVin, false), { dispatch: false, phase: 'not_eligible' });
+    assert.deepEqual(auth.claimLoginSync(session, loginVin, false), { dispatch: false, phase: 'wake_unknown' });
+    assert.equal(auth.finishLoginSync(session, loginVin, 'wake_accepted'), 'wake_accepted');
+    time += 600000;
+    assert.equal(auth.loginSyncPhase(rotated, loginVin), 'wake_accepted');
+    const fresh = auth.authenticate(auth.exchange(grant(auth)).access_token);
+    time += 600000;
+    assert.equal(auth.loginSyncPhase(fresh, loginVin), 'not_eligible');
+    assert.equal(auth.loginSyncPhase(auth.authenticate(auth.refresh(refreshed.refresh_token).access_token), loginVin), 'wake_accepted');
+    auth.revoke(session.family); assert.equal(auth.loginSyncPhase(session, loginVin), 'not_eligible');
+  } finally { auth.close(); }
+});
+
+test('login claim and final result survive reopen; pending crash is unknown forever; online consumes without dispatch', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'pony-login-reopen-')), path = join(dir, 'sessions.sqlite');
+  let auth;
+  try {
+    auth = new NativeAuth(path, { clock: () => now });
+    const session = auth.authenticate(auth.exchange(grant(auth)).access_token);
+    assert.equal(auth.claimLoginSync(session, loginVin, false).dispatch, true);
+    auth.close(); auth = new NativeAuth(path, { clock: () => now + 600001 });
+    assert.deepEqual(auth.claimLoginSync(session, loginVin, false), { phase: 'wake_unknown', dispatch: false });
+    auth.finishLoginSync(session, loginVin, 'wake_denied');
+    auth.close(); auth = new NativeAuth(path, { clock: () => now + 600001 });
+    assert.deepEqual(auth.claimLoginSync(session, loginVin, false), { phase: 'wake_denied', dispatch: false });
+    const online = auth.authenticate(auth.exchange(grant(auth)).access_token);
+    assert.deepEqual(auth.claimLoginSync(online, loginVin, true), { phase: 'online', dispatch: false });
+    assert.deepEqual(auth.claimLoginSync(online, loginVin, false), { phase: 'online', dispatch: false });
+  } finally { auth?.close(); await rm(dir, { recursive: true, force: true }); }
+});
+
+test('separate processes atomically compete for a single durable SQLite dispatch claim', { timeout: 30000 }, async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'pony-login-process-')), path = join(dir, 'sessions.sqlite');
+  const auth = new NativeAuth(path, { clock: () => now });
+  const children = [], readiness = [], results = [], exits = [];
+  try {
+    const session = auth.authenticate(auth.exchange(grant(auth)).access_token);
+    const source = `import { NativeAuth } from ${JSON.stringify(new URL('./native-auth.mjs', import.meta.url).href)};
+      const auth = new NativeAuth(process.argv[1], { clock: () => ${now} });
+      process.send('ready');
+      process.on('message', () => { const result = auth.claimLoginSync(JSON.parse(process.argv[2]), process.argv[3], false);
+        auth.close(); process.send(result, () => process.disconnect()); });`;
+    for (let i = 0; i < 4; i++) {
+      const child = spawn(process.execPath, ['--input-type=module', '-e', source, path, JSON.stringify(session), loginVin], { stdio: ['ignore', 'ignore', 'pipe', 'ipc'] });
+      children.push(child);
+      let stderr = '', result, ready = false, resolveReady, rejectReady;
+      child.stderr.on('data', value => { stderr += value; });
+      const readinessPromise = new Promise((resolve, reject) => { resolveReady = resolve; rejectReady = reject; });
+      // Observe EACH promise immediately. A sibling's constructor failure must
+      // not leave rejections or running IPC children behind after test failure.
+      readinessPromise.catch(() => {}); readiness.push(readinessPromise);
+      child.on('message', value => {
+        if (value === 'ready') { ready = true; resolveReady(); }
+        else result = value;
+      });
+      const exited = new Promise(resolve => {
+        child.once('error', error => { rejectReady(error); resolve({ error }); });
+        child.once('exit', (code, signal) => {
+          if (!ready) rejectReady(new Error(stderr || `Child exited before ready: ${code}/${signal}`));
+          resolve({ code, signal });
+        });
+      });
+      exits.push(exited);
+      const completed = exited.then(({ code, signal, error }) => {
+        if (error || code !== 0 || !result) throw error || new Error(stderr || `Child missing result: ${code}/${signal}`);
+        return result;
+      });
+      completed.catch(() => {}); results.push(completed);
+    }
+    await Promise.all(readiness); for (const child of children) child.send('claim');
+    const claims = await Promise.all(results);
+    assert.equal(claims.filter(value => value.dispatch).length, 1);
+    assert.ok(claims.every(value => value.phase === 'wake_unknown'));
+    assert.equal(auth.loginSyncPhase(session, loginVin), 'wake_unknown');
+  } finally {
+    for (const child of children) if (child.exitCode === null) child.kill();
+    await Promise.allSettled(exits);
+    await Promise.allSettled(results);
+    auth.close(); await rm(dir, { recursive: true, force: true });
+  }
 });

@@ -2,12 +2,13 @@ import { randomBytes, randomUUID, createHash, createPublicKey, verify } from 'no
 import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync, chmodSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { SafeError, isRecord } from './core.mjs';
+import { SafeError, isRecord, validVin } from './core.mjs';
 
 export const CALLBACK = 'pony-native://auth';
 // Fixed CN third-party discovery contract; OAuth endpoints remain in core.AUTH.
 export const THIRD_PARTY_ISSUER = 'https://auth.tesla.cn/oauth2/v3/nts';
 export const JWKS = 'https://auth.tesla.cn/oauth2/v3/discovery/thirdparty/keys';
+export const LOGIN_SYNC_MS = 600_000;
 export const ACCESS_MS = 900_000;
 export const REFRESH_MS = 30 * 86400_000;
 const opaque = () => randomBytes(32).toString('base64url');
@@ -199,11 +200,16 @@ export class NativeAuth {
     if (path !== ':memory:') { mkdirSync(dirname(path), { recursive: true, mode: 0o700 }); chmodSync(dirname(path), 0o700); }
     this.db = new DatabaseSync(path);
     if (path !== ':memory:') chmodSync(path, 0o600);
-    this.db.exec(`PRAGMA journal_mode=DELETE; PRAGMA secure_delete=ON; PRAGMA busy_timeout=5000;
+    // Install the busy handler BEFORE any pragma/schema operation can take a
+    // database lock; independent processes may initialize this file together.
+    this.db.exec('PRAGMA busy_timeout=5000');
+    this.db.exec(`PRAGMA journal_mode=DELETE; PRAGMA secure_delete=ON;
       CREATE TABLE IF NOT EXISTS accounts (id TEXT PRIMARY KEY, issuer TEXT NOT NULL, subject TEXT NOT NULL, UNIQUE(issuer,subject));
       CREATE TABLE IF NOT EXISTS pending (secret TEXT PRIMARY KEY, kind TEXT NOT NULL, expires INTEGER NOT NULL, payload TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS families (id TEXT PRIMARY KEY, account TEXT NOT NULL, expires INTEGER NOT NULL, revoked INTEGER NOT NULL DEFAULT 0);
       CREATE TABLE IF NOT EXISTS tokens (secret TEXT PRIMARY KEY, kind TEXT NOT NULL, family TEXT NOT NULL, expires INTEGER NOT NULL, used INTEGER NOT NULL DEFAULT 0);
+      CREATE TABLE IF NOT EXISTS login_sync (family TEXT PRIMARY KEY, account TEXT NOT NULL, expires INTEGER NOT NULL,
+        vin TEXT, phase TEXT, CHECK (phase IS NULL OR phase IN ('pending','online','wake_accepted','wake_unknown','wake_denied')));
       CREATE INDEX IF NOT EXISTS tokens_family ON tokens(family);
       CREATE INDEX IF NOT EXISTS tokens_expiry ON tokens(kind, expires);`);
     // Additive migration: preserve existing sessions and replay tombstones.
@@ -228,6 +234,7 @@ export class NativeAuth {
     this.db.prepare("DELETE FROM tokens WHERE kind='access' AND expires<=?").run(this.clock());
     this.db.prepare('DELETE FROM pending WHERE expires<=?').run(this.clock());
     this.db.prepare('DELETE FROM tokens WHERE family IN (SELECT id FROM families WHERE expires<=?)').run(this.clock());
+    this.db.prepare('DELETE FROM login_sync WHERE family IN (SELECT id FROM families WHERE expires<=?)').run(this.clock());
     this.db.prepare('DELETE FROM families WHERE expires<=?').run(this.clock());
   }
   put(kind, payload, ttl) {
@@ -289,11 +296,12 @@ export class NativeAuth {
     return this.db.prepare('SELECT id FROM accounts WHERE issuer=? AND subject=?').get(issuer, subject).id;
   }
   grant(account, pending) { return this.put('grant', { account, ...pending }, 60_000); }
-  issue(account, family = null) {
+  issue(account, family = null, { loginSync = false } = {}) {
     const now = this.clock();
     if (!family) {
       family = randomUUID();
       this.db.prepare('INSERT INTO families (id, account, expires, revoked) VALUES (?,?,?,0)').run(family, account, now + REFRESH_MS);
+      if (loginSync) this.db.prepare('INSERT INTO login_sync (family,account,expires) VALUES (?,?,?)').run(family, account, now + LOGIN_SYNC_MS);
     }
     const expires = this.db.prepare('SELECT expires FROM families WHERE id=?').get(family).expires;
     const access = opaque(), refresh = opaque();
@@ -307,7 +315,7 @@ export class NativeAuth {
     const pending = this.take(grant, 'grant');
     if (callback !== CALLBACK || typeof code_verifier !== 'string' || !/^[A-Za-z0-9._~-]{43,128}$/.test(code_verifier)
       || hash(code_verifier) !== pending.code_challenge) throw denied();
-    return this.transaction(() => this.issue(pending.account));
+    return this.transaction(() => this.issue(pending.account, null, { loginSync: true }));
   }
   token(secret, kind) {
     if (!isOpaque(secret)) throw denied();
@@ -337,6 +345,33 @@ export class NativeAuth {
     });
     if (!result) throw denied();
     return result;
+  }
+  // null means unclaimed eligibility; a pending/crashed dispatch is permanently unknown.
+  loginSyncPhase(session, vin) {
+    if (!validVin(vin)) throw new SafeError('Invalid vehicle');
+    const row = this.db.prepare(`SELECT s.* FROM login_sync s JOIN families f ON f.id=s.family
+      WHERE s.family=? AND s.account=? AND f.account=? AND f.revoked=0 AND f.expires>?`)
+      .get(session.family, session.account, session.account, this.clock());
+    if (!row) return 'not_eligible';
+    if (row.vin !== null) return row.vin === vin ? (row.phase === 'pending' ? 'wake_unknown' : row.phase) : 'not_eligible';
+    return row.expires > this.clock() ? null : 'not_eligible';
+  }
+  claimLoginSync(session, vin, online) {
+    return this.transaction(() => {
+      const phase = this.loginSyncPhase(session, vin);
+      if (phase !== null) return { phase, dispatch: false };
+      const stored = online ? 'online' : 'pending';
+      const result = this.db.prepare(`UPDATE login_sync SET vin=?, phase=? WHERE family=? AND account=? AND vin IS NULL AND expires>?`)
+        .run(vin, stored, session.family, session.account, this.clock());
+      if (result.changes !== 1) return { phase: 'not_eligible', dispatch: false };
+      return { phase: online ? 'online' : 'wake_unknown', dispatch: !online };
+    });
+  }
+  finishLoginSync(session, vin, phase) {
+    if (!['wake_accepted', 'wake_unknown', 'wake_denied'].includes(phase)) phase = 'wake_unknown';
+    this.db.prepare("UPDATE login_sync SET phase=? WHERE family=? AND account=? AND vin=? AND phase='pending'")
+      .run(phase, session.family, session.account, vin);
+    return phase;
   }
   revoke(family) { this.db.prepare('UPDATE families SET revoked=1 WHERE id=?').run(family); }
 }

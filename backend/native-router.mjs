@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import { mkdirSync, chmodSync } from 'node:fs';
 import { NativeAuth, IdentityVerifier, CALLBACK, nativeJSON, AUTH_REASON } from './native-auth.mjs';
-import { SafeError, Vault, TeslaClient, AUTH, FLEET, SCOPES, isRecord } from './core.mjs';
+import { SafeError, Vault, TeslaClient, AUTH, FLEET, NATIVE_SCOPES, isRecord } from './core.mjs';
 import { HistoryStore } from './history.mjs';
 
 const COOKIE = '__Secure-pony_native';
@@ -146,21 +146,31 @@ export function createNativeRouter(settings, { transport = fetch, clock = Date.n
         const issued = store.browser(url.searchParams.get('request'));
         res.setHeader('Set-Cookie', cookie(issued.browser, 600));
         const query = new URLSearchParams({ client_id: settings.clientId, redirect_uri: `${settings.origin}/oauth/callback`,
-          response_type: 'code', scope: SCOPES, state: issued.state, nonce: issued.nonce, locale: 'zh-CN' });
+          response_type: 'code', scope: NATIVE_SCOPES, state: issued.state, nonce: issued.nonce, locale: 'zh-CN' });
         redirect(`${AUTH}/authorize?${query}`); return true;
       }
-      const vehiclePath = /^\/vehicles\/([A-HJ-NPR-Z0-9]{17})\/(probe|snapshot)$/.exec(path);
+      const vehiclePath = /^\/vehicles\/([A-HJ-NPR-Z0-9]{17})\/(probe|snapshot|login-sync)$/.exec(path);
       const supported = (req.method === 'GET' && ['/session', '/vehicles'].includes(path))
         || (req.method === 'POST' && path === '/auth/logout')
-        || (vehiclePath && req.method === (vehiclePath[2] === 'probe' ? 'POST' : 'GET'));
+        || (vehiclePath && req.method === (vehiclePath[2] === 'snapshot' ? 'GET' : 'POST'));
       if (!supported) throw new SafeError('Native route not found', 404);
       if (url.search) throw new SafeError('Query parameters not accepted');
       const session = store.authenticate(req.headers.authorization?.slice(7));
-      if (req.method === 'POST') await body(req);
+      if (req.method === 'POST') {
+        const input = await body(req);
+        if (vehiclePath?.[2] === 'login-sync' && Object.keys(input).length) throw new SafeError('Empty JSON required');
+      }
       if (path === '/auth/logout') { store.revoke(session.family); json({ logged_out: true, tesla_revoked: false, data_deleted: false }); return true; }
       if (path === '/session') {
         json({ account_id: session.account, features: { vehicles: true, probe: true, snapshot: true,
-          commands: false, telemetry: false, charge_history: false, trips: false }, native_deployment_verified: false }); return true;
+          login_sync: true, commands: false, telemetry: false, charge_history: false, trips: false }, native_deployment_verified: false }); return true;
+      }
+      if (vehiclePath?.[2] === 'login-sync') {
+        // Authentication above verifies live bearer/family revocation first.
+        // Durable duplicates (including pending) return before account admission
+        // or Fleet membership I/O, even while the first wake is in flight.
+        const phase = store.loginSyncPhase(session, vehiclePath[1]);
+        if (phase !== null) { json({ vin: vehiclePath[1], phase }); return true; }
       }
       const context = account(session.account);
       if (clock() - context.fleetWindow >= 60_000) { context.fleetWindow = clock(); context.fleetRequests = 0; }
@@ -171,7 +181,21 @@ export function createNativeRouter(settings, { transport = fetch, clock = Date.n
       try {
         if (path === '/vehicles') { json({ vehicles: await context.client.vehicles() }); return true; }
         const [, vin, operation] = vehiclePath;
-        if (operation === 'probe') {
+        if (operation === 'login-sync') {
+          // Fresh claims require current account membership. Never expose raw
+          // Fleet state/errors through this narrow phase-only interface.
+          let selected;
+          try { selected = (await context.client.vehicles()).find(v => v.vin === vin); }
+          catch { throw new SafeError('Vehicle membership unavailable', 502); }
+          if (!selected) throw new SafeError('Vehicle not authorized', 403);
+          const claim = store.claimLoginSync(session, vin, selected.state === 'online');
+          let phase = claim.phase;
+          if (claim.dispatch) {
+            try { phase = await context.client.loginWake(vin); } catch { phase = 'wake_unknown'; }
+            phase = store.finishLoginSync(session, vin, phase);
+          }
+          json({ vin, phase });
+        } else if (operation === 'probe') {
           if (context.active || clock() - context.lastProbe < 15_000) throw new SafeError('Wait at least 15 seconds before probing', 429);
           context.active = true; context.lastProbe = clock();
           try {

@@ -1,0 +1,2083 @@
+{
+  "synthetic": true,
+  "scenarios": [
+    "success-light",
+    "success-dark",
+    "success-large",
+    "timeout",
+    "unknown",
+    "multiple",
+    "cancel",
+    "late",
+    "logout",
+    "restore",
+    "refresh",
+    "401-waking",
+    "401-waiting",
+    "401-reading",
+    "401-cancel",
+    "no-cache",
+    "unknown404",
+    "429",
+    "network",
+    "decode",
+    "deadline-reading",
+    "denied",
+    "confirmation-error"
+  ],
+  "limits": [
+    "No real-car or server at-most-once evidence",
+    "Browser and storage are synthetic/in-memory",
+    "Phase captures are actual rendered fixture windows, not OCR-verified",
+    "Cancellation suppresses URLProtocol delivery; does not force uncancellable late delivery"
+  ],
+  "runtime": {
+    "isAvailable": true,
+    "version": "27.0",
+    "isInternal": false,
+    "buildversion": "24A434",
+    "supportedArchitectures": [
+      "arm64"
+    ],
+    "supportedDeviceTypes": [
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPhone 18 Pro.simdevicetype",
+        "name": "iPhone 18 Pro",
+        "productFamily": "iPhone",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-18-Pro"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPhone 18 Pro Max.simdevicetype",
+        "name": "iPhone 18 Pro Max",
+        "productFamily": "iPhone",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-18-Pro-Max"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPhone 17 Pro.simdevicetype",
+        "name": "iPhone 17 Pro",
+        "productFamily": "iPhone",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPhone 17 Pro Max.simdevicetype",
+        "name": "iPhone 17 Pro Max",
+        "productFamily": "iPhone",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro-Max"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPhone 17e.simdevicetype",
+        "name": "iPhone 17e",
+        "productFamily": "iPhone",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-17e"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPhone Air.simdevicetype",
+        "name": "iPhone Air",
+        "productFamily": "iPhone",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-Air"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPhone 17.simdevicetype",
+        "name": "iPhone 17",
+        "productFamily": "iPhone",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-17"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPhone 16 Pro.simdevicetype",
+        "name": "iPhone 16 Pro",
+        "productFamily": "iPhone",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPhone 16 Pro Max.simdevicetype",
+        "name": "iPhone 16 Pro Max",
+        "productFamily": "iPhone",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro-Max"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPhone 16e.simdevicetype",
+        "name": "iPhone 16e",
+        "productFamily": "iPhone",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-16e"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPhone 16.simdevicetype",
+        "name": "iPhone 16",
+        "productFamily": "iPhone",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-16"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPhone 16 Plus.simdevicetype",
+        "name": "iPhone 16 Plus",
+        "productFamily": "iPhone",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-16-Plus"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPhone 15 Pro.simdevicetype",
+        "name": "iPhone 15 Pro",
+        "productFamily": "iPhone",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-15-Pro"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPhone 15 Pro Max.simdevicetype",
+        "name": "iPhone 15 Pro Max",
+        "productFamily": "iPhone",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-15-Pro-Max"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPhone 15.simdevicetype",
+        "name": "iPhone 15",
+        "productFamily": "iPhone",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-15"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPhone 15 Plus.simdevicetype",
+        "name": "iPhone 15 Plus",
+        "productFamily": "iPhone",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-15-Plus"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPhone 14 Pro.simdevicetype",
+        "name": "iPhone 14 Pro",
+        "productFamily": "iPhone",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-14-Pro"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPhone 14 Pro Max.simdevicetype",
+        "name": "iPhone 14 Pro Max",
+        "productFamily": "iPhone",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-14-Pro-Max"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPhone 14.simdevicetype",
+        "name": "iPhone 14",
+        "productFamily": "iPhone",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-14"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPhone 14 Plus.simdevicetype",
+        "name": "iPhone 14 Plus",
+        "productFamily": "iPhone",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-14-Plus"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPhone SE (3rd generation).simdevicetype",
+        "name": "iPhone SE (3rd generation)",
+        "productFamily": "iPhone",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-SE-3rd-generation"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPhone 13 Pro.simdevicetype",
+        "name": "iPhone 13 Pro",
+        "productFamily": "iPhone",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-13-Pro"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPhone 13 Pro Max.simdevicetype",
+        "name": "iPhone 13 Pro Max",
+        "productFamily": "iPhone",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-13-Pro-Max"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPhone 13.simdevicetype",
+        "name": "iPhone 13",
+        "productFamily": "iPhone",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-13"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPhone 13 mini.simdevicetype",
+        "name": "iPhone 13 mini",
+        "productFamily": "iPhone",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-13-mini"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPhone 12 Pro.simdevicetype",
+        "name": "iPhone 12 Pro",
+        "productFamily": "iPhone",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-12-Pro"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPhone 12 Pro Max.simdevicetype",
+        "name": "iPhone 12 Pro Max",
+        "productFamily": "iPhone",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-12-Pro-Max"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPhone 12.simdevicetype",
+        "name": "iPhone 12",
+        "productFamily": "iPhone",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-12"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPhone 12 mini.simdevicetype",
+        "name": "iPhone 12 mini",
+        "productFamily": "iPhone",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-12-mini"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPhone SE (2nd generation).simdevicetype",
+        "name": "iPhone SE (2nd generation)",
+        "productFamily": "iPhone",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-SE--2nd-generation-"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPhone 11 Pro.simdevicetype",
+        "name": "iPhone 11 Pro",
+        "productFamily": "iPhone",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-11-Pro"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPhone 11 Pro Max.simdevicetype",
+        "name": "iPhone 11 Pro Max",
+        "productFamily": "iPhone",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-11-Pro-Max"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPhone 11.simdevicetype",
+        "name": "iPhone 11",
+        "productFamily": "iPhone",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-11"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPad Pro 13-inch (M5) (16GB).simdevicetype",
+        "name": "iPad Pro 13-inch (M5) (16GB)",
+        "productFamily": "iPad",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-13-inch-M5-16GB"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPad Pro 13-inch (M5).simdevicetype",
+        "name": "iPad Pro 13-inch (M5)",
+        "productFamily": "iPad",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-13-inch-M5-12GB"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPad Pro 11-inch (M5) (16GB).simdevicetype",
+        "name": "iPad Pro 11-inch (M5) (16GB)",
+        "productFamily": "iPad",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-11-inch-M5-16GB"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPad Pro 11-inch (M5).simdevicetype",
+        "name": "iPad Pro 11-inch (M5)",
+        "productFamily": "iPad",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-11-inch-M5-12GB"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPad Pro 11-inch (M4) (16GB).simdevicetype",
+        "name": "iPad Pro 11-inch (M4) (16GB)",
+        "productFamily": "iPad",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-11-inch-M4-16GB"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPad Pro 11-inch (M4).simdevicetype",
+        "name": "iPad Pro 11-inch (M4)",
+        "productFamily": "iPad",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-11-inch-M4-8GB"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPad Pro 13-inch (M4) (16GB).simdevicetype",
+        "name": "iPad Pro 13-inch (M4) (16GB)",
+        "productFamily": "iPad",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-13-inch-M4-16GB"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPad Pro 13-inch (M4).simdevicetype",
+        "name": "iPad Pro 13-inch (M4)",
+        "productFamily": "iPad",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-13-inch-M4-8GB"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPad Air 13-inch (M4).simdevicetype",
+        "name": "iPad Air 13-inch (M4)",
+        "productFamily": "iPad",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPad-Air-13-inch-M4"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPad Air 11-inch (M4).simdevicetype",
+        "name": "iPad Air 11-inch (M4)",
+        "productFamily": "iPad",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPad-Air-11-inch-M4"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPad (A16).simdevicetype",
+        "name": "iPad (A16)",
+        "productFamily": "iPad",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPad-A16"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPad Air 13-inch (M3).simdevicetype",
+        "name": "iPad Air 13-inch (M3)",
+        "productFamily": "iPad",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPad-Air-13-inch-M3"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPad Air 11-inch (M3).simdevicetype",
+        "name": "iPad Air 11-inch (M3)",
+        "productFamily": "iPad",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPad-Air-11-inch-M3"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPad Air 11-inch (M2).simdevicetype",
+        "name": "iPad Air 11-inch (M2)",
+        "productFamily": "iPad",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPad-Air-11-inch-M2"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPad Air 13-inch (M2).simdevicetype",
+        "name": "iPad Air 13-inch (M2)",
+        "productFamily": "iPad",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPad-Air-13-inch-M2"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPad mini (A17 Pro).simdevicetype",
+        "name": "iPad mini (A17 Pro)",
+        "productFamily": "iPad",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPad-mini-A17-Pro"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPad Pro (11-inch) (4th generation) (16GB).simdevicetype",
+        "name": "iPad Pro (11-inch) (4th generation) (16GB)",
+        "productFamily": "iPad",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-11-inch-4th-generation-16GB"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPad Pro (11-inch) (4th generation).simdevicetype",
+        "name": "iPad Pro (11-inch) (4th generation)",
+        "productFamily": "iPad",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-11-inch-4th-generation-8GB"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPad Pro (12.9-inch) (6th generation) (16GB).simdevicetype",
+        "name": "iPad Pro (12.9-inch) (6th generation) (16GB)",
+        "productFamily": "iPad",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-12-9-inch-6th-generation-16GB"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPad Pro (12.9-inch) (6th generation).simdevicetype",
+        "name": "iPad Pro (12.9-inch) (6th generation)",
+        "productFamily": "iPad",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-12-9-inch-6th-generation-8GB"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPad (10th generation).simdevicetype",
+        "name": "iPad (10th generation)",
+        "productFamily": "iPad",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPad-10th-generation"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPad Air (5th generation).simdevicetype",
+        "name": "iPad Air (5th generation)",
+        "productFamily": "iPad",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPad-Air-5th-generation"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPad mini (6th generation).simdevicetype",
+        "name": "iPad mini (6th generation)",
+        "productFamily": "iPad",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPad-mini-6th-generation"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPad Pro (11-inch) (3rd generation).simdevicetype",
+        "name": "iPad Pro (11-inch) (3rd generation)",
+        "productFamily": "iPad",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-11-inch-3rd-generation"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPad Pro (12.9-inch) (5th generation).simdevicetype",
+        "name": "iPad Pro (12.9-inch) (5th generation)",
+        "productFamily": "iPad",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-12-9-inch-5th-generation"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPad (9th generation).simdevicetype",
+        "name": "iPad (9th generation)",
+        "productFamily": "iPad",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPad-9th-generation"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPad Air (4th generation).simdevicetype",
+        "name": "iPad Air (4th generation)",
+        "productFamily": "iPad",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPad-Air--4th-generation-"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPad Pro (11-inch) (2nd generation).simdevicetype",
+        "name": "iPad Pro (11-inch) (2nd generation)",
+        "productFamily": "iPad",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPad-Pro--11-inch---2nd-generation-"
+      },
+      {
+        "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPad Pro (12.9-inch) (4th generation).simdevicetype",
+        "name": "iPad Pro (12.9-inch) (4th generation)",
+        "productFamily": "iPad",
+        "identifier": "com.apple.CoreSimulator.SimDeviceType.iPad-Pro--12-9-inch---4th-generation-"
+      }
+    ],
+    "identifier": "com.apple.CoreSimulator.SimRuntime.iOS-27-0",
+    "platform": "iOS",
+    "bundlePath": "/private/var/run/com.apple.security.cryptexd/mnt/com.apple.iPhoneOS.SimulatorRuntime-v24.1.434.0.6ZV8Ez/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 27.0.simruntime",
+    "runtimeRoot": "/private/var/run/com.apple.security.cryptexd/mnt/com.apple.iPhoneOS.SimulatorRuntime-v24.1.434.0.6ZV8Ez/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 27.0.simruntime/Contents/Resources/RuntimeRoot",
+    "lastUsage": {
+      "arm64": "0001-01-01T00:00:00Z"
+    },
+    "name": "iOS 27.0"
+  },
+  "device_type": {
+    "productFamily": "iPhone",
+    "bundlePath": "/Library/Developer/CoreSimulator/Profiles/DeviceTypes/iPhone 11.simdevicetype",
+    "maxRuntimeVersion": 4294967295,
+    "maxRuntimeVersionString": "65535.255.255",
+    "identifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-11",
+    "modelIdentifier": "iPhone12,1",
+    "minRuntimeVersionString": "13.0.0",
+    "minRuntimeVersion": 851968,
+    "name": "iPhone 11"
+  },
+  "copied_source_changes": [
+    "Pony/PonyApp.swift"
+  ],
+  "production_source_sha256": {
+    "check-logic.sh": "ecacb1e8887725110ffbf1103a4411b1e2416233b0574dc0838778b0e1740394",
+    "VALIDATION.md": "0abcb46bc371b628cf607f113d77d014ddcd30e811a11b1e0aba1f3e06c67d97",
+    "mac-build.sh": "b38637e29aee001b714578bec9957066f60dbd3a879729979b777c5b3ba4a3ae",
+    "README.md": "a31a1a5b084f5ef9b7ee5f98464b9cc9824b0ab21cfce09804c763c9873bd701",
+    "SIMULATOR-CHECKLIST.md": "b8755a35949d84c62dae8bf3fc6eadb4ea58d390731f8ea13398c060d9c8c08e",
+    "Pony.xcodeproj/project.pbxproj": "dc8a57f354d6677f51491e9be634d7590ed5a81d8432973a4a984e5700bcc36a",
+    "Pony/VehicleView.swift": "1aefb949cd1b42ac6d5e0dcb5000055387186ffcebe6aa62abc20834c01f08be",
+    "Pony/ProfileView.swift": "701bc527428148bee3bc9c34c59cd6d72d65a5d7e4edad80bbc1fc9ae4ab82ab",
+    "Pony/VehicleScene.swift": "f34d8aba9261614b9cfb513459106746e49aaf363e44dc62639ba9455fbc0671",
+    "Pony/PonyApp.swift": "7a6d6a3e9fc22af64cc4934f67d49c3f358ea3394a615781fe3157f4ab92d72e",
+    "Pony/NativeTeslaClient.swift": "b1760b33b6ae15e4fcd9c690d9a4f53c7cbd56976aad7a53ed2268b57221e365",
+    "Pony/ChargingView.swift": "1cd65de7c3f711aa2b404fe53904e56a585b02c1bdae4927e07e0cb292fb7ad7",
+    "Pony/NativeAccountViews.swift": "5b00b574ccc67e35960b3eeef205e75d8ca3ff28cfa9a1452003166215e080f4",
+    "Pony/NativeHistoryViews.swift": "1d70ead5380d6a3a418684c60bf1498c09153ad0be5397df76c371152db5325a",
+    "Pony/NativeHistoryStore.swift": "ca2babde11783c5b1090aabf9a73ddb94862be86b6b6500b29d934ca9aef98df",
+    "Pony/AppStore.swift": "5f8397653e04eea3775a896f0f1691f06290d74d3bbc521d4b90177c3b31ecbe",
+    "Pony/TripViews.swift": "4b36aeae678ce67ebc58726550ce3facd8af14b850ea57b94416305934e982b0",
+    "Pony/Components.swift": "44dd766199accc7ab7a31483a0275a5a54657cc0edd986e55d6e8feb85ea663f",
+    "Pony/VehicleStage.swift": "3d947303b02e96e0d4ba1ecbcde87c90aeb323b9b2a357a828ee37c3bdf09664",
+    "Pony/Info.plist": "3ea18b3c891db147a0a2abc3ebba9cc52d4e603a257a68e653b4c75d406bfdbf",
+    "PonyCore/Package.swift": "71cc530081dd7583c5d4d9c1f13db8860d621c5f310d5eb388280fcbee14f611",
+    "Checks/NativeTeslaClientChecks.swift": "44267561a50727fd70fb6194d60e6498d48aa2e08201c6f54657f7a9d9ab866d",
+    "Checks/AppStoreChecks.swift": "a47224bd5a839d2d3a563a5f658f6011aab2bf3f6f34f013bfe445d0503a5c6c",
+    "Checks/ProjectCheck.swift": "35bddae02c0fa2c3deb111bb37affb9dc4b98aaf1a827e190b61a06a7b8ff072",
+    "PonyCore/Sources/PonyCore/FeatureStatusPresentation.swift": "e613de56a09c1ae8fb612feb6213130e8e7b0d7bfc02162cd49bbf6218bf4675",
+    "PonyCore/Sources/PonyCore/Vehicle.swift": "415a669cce70cc1baabbbf35c7248c5581e60c5cfdac31785e77f6f1db3c42cc",
+    "PonyCore/Sources/PonyCore/DemoService.swift": "5749e7fed151ca6c76293f138c8788adc0e8745ab61e62ce8dbbf72fa45178b4",
+    "PonyCore/Sources/PonyCore/Trips.swift": "09652099cb65bd263cd62083bb342164fc6cff55cd3ad50f11795607873d6483",
+    "PonyCore/Sources/PonyCore/VehiclePresentation.swift": "2201c2ad6b5b35688a13cbb5f6929ad1d25f7661c74c83f72459af48d34a4a17",
+    "PonyCore/Sources/PonyCore/NativeHistory.swift": "65f2babe4b3b1d771e6e4b4865f45c3f3bc63ed0501a164d707d5502a0c0917c",
+    "PonyCore/Sources/PonyCore/ReadOnlyVehicleData.swift": "07482bee093e659fcaee3a9bf5b1608603b0cef02e3a45d9a0edc2cf9b4bcda6",
+    "PonyCore/Tests/PonyCoreTests/VehiclePresentationTests.swift": "6734f490d74dd24e55838fa2225c5a09b5356938c43fdf6ecb6b88f4c8e7e728",
+    "PonyCore/Tests/PonyCoreTests/FeatureStatusPresentationTests.swift": "bbd3bf9d83aaa3def99f7d0584a8aaf9038f0665659865b3ce4fa54fe4dc8981",
+    "PonyCore/Tests/PonyCoreTests/NativeHistoryTests.swift": "6f8a3cda2e35682d3f8b4d24c5a006fd304db9006f2a7d3fa279289f6eb48186",
+    "PonyCore/Tests/PonyCoreTests/ReadOnlyVehicleDataTests.swift": "f605ccb2465115739f3b05a243940768723cdbe049fbaa793ef1ef28182aa4fc",
+    "PonyCore/Tests/PonyCoreTests/PonyCoreTests.swift": "39a863bae050c770f361438353a6548c848671c8977e23015cf82f7e83a5352b",
+    "Pony/Assets.xcassets/Contents.json": "0fd49ba3c3585c709678e0046a821c3c60685ec7063720d30d3a3448be3a208b",
+    "Pony/Assets.xcassets/AppIcon.appiconset/Contents.json": "3725fefca1cc2f15dcff52b03b7db47884c8141e5be1d4e559367b76117f8c48",
+    "Pony/Assets.xcassets/AppIcon.appiconset/AppIcon.png": "994ba01454a019202dea4ce4dcac4399367562e7a0b9e9c5dce7a09a374858d8",
+    "Pony/Assets.xcassets/VehicleModel3CN2022HomeClosed.imageset/Contents.json": "249b7ec76f1053e76812ee99fc2717c41e9ae9c144511ef6d58ffce176bfe6a1",
+    "Pony/Assets.xcassets/VehicleModel3CN2022HomeClosed.imageset/home-closed@3x.png": "3ec385baccea4180147ad22884fbea97e4497a64fae33ff1d5f3a5f92b470461",
+    "Pony/Assets.xcassets/VehicleModel3CN2022HomeClosed.imageset/home-closed@2x.png": "520126561bf68a32f3143d431dd9bbf5cec787ac44a4faec17dce1486fb5031a",
+    "Pony.xcodeproj/xcshareddata/xcschemes/Pony.xcscheme": "fa6479ef8eb5f62be495fa0c2f2e3d50f1c653382272fff201a259a477d9329c"
+  },
+  "bundle_id": "party.ponypro.LoginWakeSynthetic",
+  "production_sources_unchanged": true,
+  "results": [
+    {
+      "scenario": "success-light",
+      "result": "pass",
+      "report": {
+        "assertions": [
+          {
+            "name": "initialization does not access network",
+            "passed": true
+          },
+          {
+            "name": "real scene key window active",
+            "passed": true
+          },
+          {
+            "name": "fresh sign-in saves local session",
+            "passed": true
+          },
+          {
+            "name": "auth start exchange session exactly once",
+            "passed": true
+          },
+          {
+            "name": "duplicate connect does not restart authentication",
+            "passed": true
+          },
+          {
+            "name": "waiting reached",
+            "passed": true
+          },
+          {
+            "name": "shared account page remains waiting while switching views",
+            "passed": true
+          },
+          {
+            "name": "view toggles never authenticate or wake again",
+            "passed": true
+          },
+          {
+            "name": "reading reached after confirmation",
+            "passed": true
+          },
+          {
+            "name": "live displayable success",
+            "passed": true
+          },
+          {
+            "name": "missing fields remain unknown",
+            "passed": true
+          },
+          {
+            "name": "exactly one confirmation and one probe",
+            "passed": true
+          },
+          {
+            "name": "exactly one login-sync dispatch",
+            "passed": true
+          },
+          {
+            "name": "terminal state has no second wake dispatch",
+            "passed": true
+          },
+          {
+            "name": "no unknown URL allowed",
+            "passed": true
+          }
+        ],
+        "counts": {
+          "GET /session": 1,
+          "GET /vehicles": 2,
+          "POST /auth/exchange": 1,
+          "POST /auth/start": 1,
+          "POST /vehicles/TEST0000000000001/login-sync": 1,
+          "POST /vehicles/TEST0000000000001/probe": 1
+        },
+        "limits": "Synthetic URLProtocol only; no real Tesla, browser, Keychain or server atomicity proof. Cancellation test uses URLSession cancellation, not forced delivery after cancellation.",
+        "result": "pass",
+        "scenario": "success-light",
+        "screenshots": [
+          "account",
+          "account-waiting",
+          "reading",
+          "success",
+          "terminal",
+          "waiting"
+        ],
+        "synthetic": true
+      }
+    },
+    {
+      "scenario": "success-dark",
+      "result": "pass",
+      "report": {
+        "assertions": [
+          {
+            "name": "initialization does not access network",
+            "passed": true
+          },
+          {
+            "name": "real scene key window active",
+            "passed": true
+          },
+          {
+            "name": "fresh sign-in saves local session",
+            "passed": true
+          },
+          {
+            "name": "auth start exchange session exactly once",
+            "passed": true
+          },
+          {
+            "name": "duplicate connect does not restart authentication",
+            "passed": true
+          },
+          {
+            "name": "waiting reached",
+            "passed": true
+          },
+          {
+            "name": "shared account page remains waiting while switching views",
+            "passed": true
+          },
+          {
+            "name": "view toggles never authenticate or wake again",
+            "passed": true
+          },
+          {
+            "name": "reading reached after confirmation",
+            "passed": true
+          },
+          {
+            "name": "live displayable success",
+            "passed": true
+          },
+          {
+            "name": "missing fields remain unknown",
+            "passed": true
+          },
+          {
+            "name": "exactly one confirmation and one probe",
+            "passed": true
+          },
+          {
+            "name": "exactly one login-sync dispatch",
+            "passed": true
+          },
+          {
+            "name": "terminal state has no second wake dispatch",
+            "passed": true
+          },
+          {
+            "name": "no unknown URL allowed",
+            "passed": true
+          }
+        ],
+        "counts": {
+          "GET /session": 1,
+          "GET /vehicles": 2,
+          "POST /auth/exchange": 1,
+          "POST /auth/start": 1,
+          "POST /vehicles/TEST0000000000001/login-sync": 1,
+          "POST /vehicles/TEST0000000000001/probe": 1
+        },
+        "limits": "Synthetic URLProtocol only; no real Tesla, browser, Keychain or server atomicity proof. Cancellation test uses URLSession cancellation, not forced delivery after cancellation.",
+        "result": "pass",
+        "scenario": "success-dark",
+        "screenshots": [
+          "account",
+          "account-waiting",
+          "reading",
+          "success",
+          "terminal",
+          "waiting"
+        ],
+        "synthetic": true
+      }
+    },
+    {
+      "scenario": "success-large",
+      "result": "pass",
+      "report": {
+        "assertions": [
+          {
+            "name": "initialization does not access network",
+            "passed": true
+          },
+          {
+            "name": "real scene key window active",
+            "passed": true
+          },
+          {
+            "name": "fresh sign-in saves local session",
+            "passed": true
+          },
+          {
+            "name": "auth start exchange session exactly once",
+            "passed": true
+          },
+          {
+            "name": "duplicate connect does not restart authentication",
+            "passed": true
+          },
+          {
+            "name": "waiting reached",
+            "passed": true
+          },
+          {
+            "name": "shared account page remains waiting while switching views",
+            "passed": true
+          },
+          {
+            "name": "view toggles never authenticate or wake again",
+            "passed": true
+          },
+          {
+            "name": "reading reached after confirmation",
+            "passed": true
+          },
+          {
+            "name": "live displayable success",
+            "passed": true
+          },
+          {
+            "name": "missing fields remain unknown",
+            "passed": true
+          },
+          {
+            "name": "exactly one confirmation and one probe",
+            "passed": true
+          },
+          {
+            "name": "exactly one login-sync dispatch",
+            "passed": true
+          },
+          {
+            "name": "terminal state has no second wake dispatch",
+            "passed": true
+          },
+          {
+            "name": "no unknown URL allowed",
+            "passed": true
+          }
+        ],
+        "counts": {
+          "GET /session": 1,
+          "GET /vehicles": 2,
+          "POST /auth/exchange": 1,
+          "POST /auth/start": 1,
+          "POST /vehicles/TEST0000000000001/login-sync": 1,
+          "POST /vehicles/TEST0000000000001/probe": 1
+        },
+        "limits": "Synthetic URLProtocol only; no real Tesla, browser, Keychain or server atomicity proof. Cancellation test uses URLSession cancellation, not forced delivery after cancellation.",
+        "result": "pass",
+        "scenario": "success-large",
+        "screenshots": [
+          "account",
+          "account-waiting",
+          "reading",
+          "success",
+          "terminal",
+          "waiting"
+        ],
+        "synthetic": true
+      }
+    },
+    {
+      "scenario": "timeout",
+      "result": "pass",
+      "report": {
+        "assertions": [
+          {
+            "name": "initialization does not access network",
+            "passed": true
+          },
+          {
+            "name": "real scene key window active",
+            "passed": true
+          },
+          {
+            "name": "fresh sign-in saves local session",
+            "passed": true
+          },
+          {
+            "name": "auth start exchange session exactly once",
+            "passed": true
+          },
+          {
+            "name": "duplicate connect does not restart authentication",
+            "passed": true
+          },
+          {
+            "name": "bounded timeout",
+            "passed": true
+          },
+          {
+            "name": "exactly four read-only confirmations",
+            "passed": true
+          },
+          {
+            "name": "exactly one login-sync dispatch",
+            "passed": true
+          },
+          {
+            "name": "terminal state has no second wake dispatch",
+            "passed": true
+          },
+          {
+            "name": "no unknown URL allowed",
+            "passed": true
+          }
+        ],
+        "counts": {
+          "GET /session": 1,
+          "GET /vehicles": 5,
+          "POST /auth/exchange": 1,
+          "POST /auth/start": 1,
+          "POST /vehicles/TEST0000000000001/login-sync": 1
+        },
+        "limits": "Synthetic URLProtocol only; no real Tesla, browser, Keychain or server atomicity proof. Cancellation test uses URLSession cancellation, not forced delivery after cancellation.",
+        "result": "pass",
+        "scenario": "timeout",
+        "screenshots": [
+          "account",
+          "terminal"
+        ],
+        "synthetic": true
+      }
+    },
+    {
+      "scenario": "unknown",
+      "result": "pass",
+      "report": {
+        "assertions": [
+          {
+            "name": "initialization does not access network",
+            "passed": true
+          },
+          {
+            "name": "real scene key window active",
+            "passed": true
+          },
+          {
+            "name": "fresh sign-in saves local session",
+            "passed": true
+          },
+          {
+            "name": "auth start exchange session exactly once",
+            "passed": true
+          },
+          {
+            "name": "duplicate connect does not restart authentication",
+            "passed": true
+          },
+          {
+            "name": "unknown is explicit terminal",
+            "passed": true
+          },
+          {
+            "name": "exactly one login-sync dispatch",
+            "passed": true
+          },
+          {
+            "name": "terminal state has no second wake dispatch",
+            "passed": true
+          },
+          {
+            "name": "no unknown URL allowed",
+            "passed": true
+          }
+        ],
+        "counts": {
+          "GET /session": 1,
+          "GET /vehicles": 1,
+          "POST /auth/exchange": 1,
+          "POST /auth/start": 1,
+          "POST /vehicles/TEST0000000000001/login-sync": 1
+        },
+        "limits": "Synthetic URLProtocol only; no real Tesla, browser, Keychain or server atomicity proof. Cancellation test uses URLSession cancellation, not forced delivery after cancellation.",
+        "result": "pass",
+        "scenario": "unknown",
+        "screenshots": [
+          "account",
+          "terminal"
+        ],
+        "synthetic": true
+      }
+    },
+    {
+      "scenario": "multiple",
+      "result": "pass",
+      "report": {
+        "assertions": [
+          {
+            "name": "initialization does not access network",
+            "passed": true
+          },
+          {
+            "name": "real scene key window active",
+            "passed": true
+          },
+          {
+            "name": "fresh sign-in saves local session",
+            "passed": true
+          },
+          {
+            "name": "auth start exchange session exactly once",
+            "passed": true
+          },
+          {
+            "name": "multiple waits for selection with zero wake",
+            "passed": true
+          },
+          {
+            "name": "duplicate connect does not restart authentication",
+            "passed": true
+          },
+          {
+            "name": "waiting reached",
+            "passed": true
+          },
+          {
+            "name": "reading reached after confirmation",
+            "passed": true
+          },
+          {
+            "name": "live displayable success",
+            "passed": true
+          },
+          {
+            "name": "missing fields remain unknown",
+            "passed": true
+          },
+          {
+            "name": "exactly one confirmation and one probe",
+            "passed": true
+          },
+          {
+            "name": "exactly one login-sync dispatch",
+            "passed": true
+          },
+          {
+            "name": "terminal state has no second wake dispatch",
+            "passed": true
+          },
+          {
+            "name": "no unknown URL allowed",
+            "passed": true
+          }
+        ],
+        "counts": {
+          "GET /session": 1,
+          "GET /vehicles": 2,
+          "POST /auth/exchange": 1,
+          "POST /auth/start": 1,
+          "POST /vehicles/TEST0000000000001/login-sync": 1,
+          "POST /vehicles/TEST0000000000001/probe": 1
+        },
+        "limits": "Synthetic URLProtocol only; no real Tesla, browser, Keychain or server atomicity proof. Cancellation test uses URLSession cancellation, not forced delivery after cancellation.",
+        "result": "pass",
+        "scenario": "multiple",
+        "screenshots": [
+          "account",
+          "reading",
+          "success",
+          "terminal",
+          "waiting"
+        ],
+        "synthetic": true
+      }
+    },
+    {
+      "scenario": "cancel",
+      "result": "pass",
+      "report": {
+        "assertions": [
+          {
+            "name": "initialization does not access network",
+            "passed": true
+          },
+          {
+            "name": "real scene key window active",
+            "passed": true
+          },
+          {
+            "name": "fresh sign-in saves local session",
+            "passed": true
+          },
+          {
+            "name": "auth start exchange session exactly once",
+            "passed": true
+          },
+          {
+            "name": "duplicate connect does not restart authentication",
+            "passed": true
+          },
+          {
+            "name": "cancelled or logged out result cannot overwrite",
+            "passed": true
+          },
+          {
+            "name": "cancel prevents probe",
+            "passed": true
+          },
+          {
+            "name": "exactly one login-sync dispatch",
+            "passed": true
+          },
+          {
+            "name": "terminal state has no second wake dispatch",
+            "passed": true
+          },
+          {
+            "name": "no unknown URL allowed",
+            "passed": true
+          }
+        ],
+        "counts": {
+          "GET /session": 1,
+          "GET /vehicles": 1,
+          "POST /auth/exchange": 1,
+          "POST /auth/start": 1,
+          "POST /vehicles/TEST0000000000001/login-sync": 1
+        },
+        "limits": "Synthetic URLProtocol only; no real Tesla, browser, Keychain or server atomicity proof. Cancellation test uses URLSession cancellation, not forced delivery after cancellation.",
+        "result": "pass",
+        "scenario": "cancel",
+        "screenshots": [
+          "account",
+          "terminal"
+        ],
+        "synthetic": true
+      }
+    },
+    {
+      "scenario": "late",
+      "result": "pass",
+      "report": {
+        "assertions": [
+          {
+            "name": "initialization does not access network",
+            "passed": true
+          },
+          {
+            "name": "real scene key window active",
+            "passed": true
+          },
+          {
+            "name": "fresh sign-in saves local session",
+            "passed": true
+          },
+          {
+            "name": "auth start exchange session exactly once",
+            "passed": true
+          },
+          {
+            "name": "duplicate connect does not restart authentication",
+            "passed": true
+          },
+          {
+            "name": "cancelled or logged out result cannot overwrite",
+            "passed": true
+          },
+          {
+            "name": "cancel prevents probe",
+            "passed": true
+          },
+          {
+            "name": "exactly one login-sync dispatch",
+            "passed": true
+          },
+          {
+            "name": "terminal state has no second wake dispatch",
+            "passed": true
+          },
+          {
+            "name": "no unknown URL allowed",
+            "passed": true
+          }
+        ],
+        "counts": {
+          "GET /session": 1,
+          "GET /vehicles": 1,
+          "POST /auth/exchange": 1,
+          "POST /auth/start": 1,
+          "POST /vehicles/TEST0000000000001/login-sync": 1
+        },
+        "limits": "Synthetic URLProtocol only; no real Tesla, browser, Keychain or server atomicity proof. Cancellation test uses URLSession cancellation, not forced delivery after cancellation.",
+        "result": "pass",
+        "scenario": "late",
+        "screenshots": [
+          "account",
+          "terminal"
+        ],
+        "synthetic": true
+      }
+    },
+    {
+      "scenario": "logout",
+      "result": "pass",
+      "report": {
+        "assertions": [
+          {
+            "name": "initialization does not access network",
+            "passed": true
+          },
+          {
+            "name": "real scene key window active",
+            "passed": true
+          },
+          {
+            "name": "fresh sign-in saves local session",
+            "passed": true
+          },
+          {
+            "name": "auth start exchange session exactly once",
+            "passed": true
+          },
+          {
+            "name": "duplicate connect does not restart authentication",
+            "passed": true
+          },
+          {
+            "name": "cancelled or logged out result cannot overwrite",
+            "passed": true
+          },
+          {
+            "name": "cancel prevents probe",
+            "passed": true
+          },
+          {
+            "name": "logout clears local session",
+            "passed": true
+          },
+          {
+            "name": "exactly one login-sync dispatch",
+            "passed": true
+          },
+          {
+            "name": "terminal state has no second wake dispatch",
+            "passed": true
+          },
+          {
+            "name": "no unknown URL allowed",
+            "passed": true
+          }
+        ],
+        "counts": {
+          "GET /session": 1,
+          "GET /vehicles": 1,
+          "POST /auth/exchange": 1,
+          "POST /auth/logout": 1,
+          "POST /auth/start": 1,
+          "POST /vehicles/TEST0000000000001/login-sync": 1
+        },
+        "limits": "Synthetic URLProtocol only; no real Tesla, browser, Keychain or server atomicity proof. Cancellation test uses URLSession cancellation, not forced delivery after cancellation.",
+        "result": "pass",
+        "scenario": "logout",
+        "screenshots": [
+          "account",
+          "terminal"
+        ],
+        "synthetic": true
+      }
+    },
+    {
+      "scenario": "restore",
+      "result": "pass",
+      "report": {
+        "assertions": [
+          {
+            "name": "initialization does not access network",
+            "passed": true
+          },
+          {
+            "name": "real scene key window active",
+            "passed": true
+          },
+          {
+            "name": "restored session has no automatic requests",
+            "passed": true
+          },
+          {
+            "name": "restore refresh and manual cache never wake",
+            "passed": true
+          },
+          {
+            "name": "no unknown URL allowed",
+            "passed": true
+          }
+        ],
+        "counts": {},
+        "limits": "Synthetic URLProtocol only; no real Tesla, browser, Keychain or server atomicity proof. Cancellation test uses URLSession cancellation, not forced delivery after cancellation.",
+        "result": "pass",
+        "scenario": "restore",
+        "screenshots": [
+          "account",
+          "terminal"
+        ],
+        "synthetic": true
+      }
+    },
+    {
+      "scenario": "refresh",
+      "result": "pass",
+      "report": {
+        "assertions": [
+          {
+            "name": "initialization does not access network",
+            "passed": true
+          },
+          {
+            "name": "real scene key window active",
+            "passed": true
+          },
+          {
+            "name": "restored session has no automatic requests",
+            "passed": true
+          },
+          {
+            "name": "refresh actually exercised",
+            "passed": true
+          },
+          {
+            "name": "manual probe is displayable and read-only",
+            "passed": true
+          },
+          {
+            "name": "manual probe does not refresh twice",
+            "passed": true
+          },
+          {
+            "name": "restore refresh and manual cache never wake",
+            "passed": true
+          },
+          {
+            "name": "no unknown URL allowed",
+            "passed": true
+          }
+        ],
+        "counts": {
+          "GET /vehicles": 1,
+          "POST /auth/refresh": 1,
+          "POST /vehicles/TEST0000000000001/probe": 1
+        },
+        "limits": "Synthetic URLProtocol only; no real Tesla, browser, Keychain or server atomicity proof. Cancellation test uses URLSession cancellation, not forced delivery after cancellation.",
+        "result": "pass",
+        "scenario": "refresh",
+        "screenshots": [
+          "account",
+          "terminal"
+        ],
+        "synthetic": true
+      }
+    },
+    {
+      "scenario": "401-waking",
+      "result": "pass",
+      "report": {
+        "assertions": [
+          {
+            "name": "initialization does not access network",
+            "passed": true
+          },
+          {
+            "name": "real scene key window active",
+            "passed": true
+          },
+          {
+            "name": "fresh sign-in saves local session",
+            "passed": true
+          },
+          {
+            "name": "auth start exchange session exactly once",
+            "passed": true
+          },
+          {
+            "name": "duplicate connect does not restart authentication",
+            "passed": true
+          },
+          {
+            "name": "401 reconciles local session promptly",
+            "passed": true
+          },
+          {
+            "name": "401 leaves no spinner or active sync",
+            "passed": true
+          },
+          {
+            "name": "401 clears selected vehicle and readings",
+            "passed": true
+          },
+          {
+            "name": "401 provides sign-in-required message",
+            "passed": true
+          },
+          {
+            "name": "401 permits reconnect UI",
+            "passed": true
+          },
+          {
+            "name": "401 phase-specific request count",
+            "passed": true
+          },
+          {
+            "name": "401 never retries or wakes again automatically",
+            "passed": true
+          },
+          {
+            "name": "cancelSync preserves reconciled missing session",
+            "passed": true
+          },
+          {
+            "name": "exactly one login-sync dispatch",
+            "passed": true
+          },
+          {
+            "name": "terminal state has no second wake dispatch",
+            "passed": true
+          },
+          {
+            "name": "no unknown URL allowed",
+            "passed": true
+          }
+        ],
+        "counts": {
+          "GET /session": 1,
+          "GET /vehicles": 1,
+          "POST /auth/exchange": 1,
+          "POST /auth/start": 1,
+          "POST /vehicles/TEST0000000000001/login-sync": 1
+        },
+        "limits": "Synthetic URLProtocol only; no real Tesla, browser, Keychain or server atomicity proof. Cancellation test uses URLSession cancellation, not forced delivery after cancellation.",
+        "result": "pass",
+        "scenario": "401-waking",
+        "screenshots": [
+          "account",
+          "expired-session",
+          "terminal"
+        ],
+        "synthetic": true
+      }
+    },
+    {
+      "scenario": "401-waiting",
+      "result": "pass",
+      "report": {
+        "assertions": [
+          {
+            "name": "initialization does not access network",
+            "passed": true
+          },
+          {
+            "name": "real scene key window active",
+            "passed": true
+          },
+          {
+            "name": "fresh sign-in saves local session",
+            "passed": true
+          },
+          {
+            "name": "auth start exchange session exactly once",
+            "passed": true
+          },
+          {
+            "name": "duplicate connect does not restart authentication",
+            "passed": true
+          },
+          {
+            "name": "401 reconciles local session promptly",
+            "passed": true
+          },
+          {
+            "name": "401 leaves no spinner or active sync",
+            "passed": true
+          },
+          {
+            "name": "401 clears selected vehicle and readings",
+            "passed": true
+          },
+          {
+            "name": "401 provides sign-in-required message",
+            "passed": true
+          },
+          {
+            "name": "401 permits reconnect UI",
+            "passed": true
+          },
+          {
+            "name": "401 phase-specific request count",
+            "passed": true
+          },
+          {
+            "name": "401 never retries or wakes again automatically",
+            "passed": true
+          },
+          {
+            "name": "cancelSync preserves reconciled missing session",
+            "passed": true
+          },
+          {
+            "name": "exactly one login-sync dispatch",
+            "passed": true
+          },
+          {
+            "name": "terminal state has no second wake dispatch",
+            "passed": true
+          },
+          {
+            "name": "no unknown URL allowed",
+            "passed": true
+          }
+        ],
+        "counts": {
+          "GET /session": 1,
+          "GET /vehicles": 2,
+          "POST /auth/exchange": 1,
+          "POST /auth/start": 1,
+          "POST /vehicles/TEST0000000000001/login-sync": 1
+        },
+        "limits": "Synthetic URLProtocol only; no real Tesla, browser, Keychain or server atomicity proof. Cancellation test uses URLSession cancellation, not forced delivery after cancellation.",
+        "result": "pass",
+        "scenario": "401-waiting",
+        "screenshots": [
+          "account",
+          "expired-session",
+          "terminal"
+        ],
+        "synthetic": true
+      }
+    },
+    {
+      "scenario": "401-reading",
+      "result": "pass",
+      "report": {
+        "assertions": [
+          {
+            "name": "initialization does not access network",
+            "passed": true
+          },
+          {
+            "name": "real scene key window active",
+            "passed": true
+          },
+          {
+            "name": "fresh sign-in saves local session",
+            "passed": true
+          },
+          {
+            "name": "auth start exchange session exactly once",
+            "passed": true
+          },
+          {
+            "name": "duplicate connect does not restart authentication",
+            "passed": true
+          },
+          {
+            "name": "401 reconciles local session promptly",
+            "passed": true
+          },
+          {
+            "name": "401 leaves no spinner or active sync",
+            "passed": true
+          },
+          {
+            "name": "401 clears selected vehicle and readings",
+            "passed": true
+          },
+          {
+            "name": "401 provides sign-in-required message",
+            "passed": true
+          },
+          {
+            "name": "401 permits reconnect UI",
+            "passed": true
+          },
+          {
+            "name": "401 phase-specific request count",
+            "passed": true
+          },
+          {
+            "name": "401 never retries or wakes again automatically",
+            "passed": true
+          },
+          {
+            "name": "cancelSync preserves reconciled missing session",
+            "passed": true
+          },
+          {
+            "name": "exactly one login-sync dispatch",
+            "passed": true
+          },
+          {
+            "name": "terminal state has no second wake dispatch",
+            "passed": true
+          },
+          {
+            "name": "no unknown URL allowed",
+            "passed": true
+          }
+        ],
+        "counts": {
+          "GET /session": 1,
+          "GET /vehicles": 2,
+          "POST /auth/exchange": 1,
+          "POST /auth/start": 1,
+          "POST /vehicles/TEST0000000000001/login-sync": 1,
+          "POST /vehicles/TEST0000000000001/probe": 1
+        },
+        "limits": "Synthetic URLProtocol only; no real Tesla, browser, Keychain or server atomicity proof. Cancellation test uses URLSession cancellation, not forced delivery after cancellation.",
+        "result": "pass",
+        "scenario": "401-reading",
+        "screenshots": [
+          "account",
+          "expired-session",
+          "terminal"
+        ],
+        "synthetic": true
+      }
+    },
+    {
+      "scenario": "401-cancel",
+      "result": "pass",
+      "report": {
+        "assertions": [
+          {
+            "name": "initialization does not access network",
+            "passed": true
+          },
+          {
+            "name": "real scene key window active",
+            "passed": true
+          },
+          {
+            "name": "restored session has no automatic requests",
+            "passed": true
+          },
+          {
+            "name": "direct transport 401 rejects",
+            "passed": true
+          },
+          {
+            "name": "fixture arranged stale UI session before cancellation",
+            "passed": true
+          },
+          {
+            "name": "cancelSync reconciles invalidated session",
+            "passed": true
+          },
+          {
+            "name": "cancelSync leaves reconnect available",
+            "passed": true
+          },
+          {
+            "name": "restore refresh and manual cache never wake",
+            "passed": true
+          },
+          {
+            "name": "no unknown URL allowed",
+            "passed": true
+          }
+        ],
+        "counts": {
+          "GET /vehicles": 1,
+          "GET /vehicles/TEST0000000000001/snapshot": 1
+        },
+        "limits": "Synthetic URLProtocol only; no real Tesla, browser, Keychain or server atomicity proof. Cancellation test uses URLSession cancellation, not forced delivery after cancellation.",
+        "result": "pass",
+        "scenario": "401-cancel",
+        "screenshots": [
+          "account",
+          "terminal"
+        ],
+        "synthetic": true
+      }
+    },
+    {
+      "scenario": "no-cache",
+      "result": "pass",
+      "report": {
+        "assertions": [
+          {
+            "name": "initialization does not access network",
+            "passed": true
+          },
+          {
+            "name": "real scene key window active",
+            "passed": true
+          },
+          {
+            "name": "restored session has no automatic requests",
+            "passed": true
+          },
+          {
+            "name": "cache request exactly once",
+            "passed": true
+          },
+          {
+            "name": "no reading on failure",
+            "passed": true
+          },
+          {
+            "name": "only exact cache miss gets no-cache flag",
+            "passed": true
+          },
+          {
+            "name": "readFailed classification",
+            "passed": true
+          },
+          {
+            "name": "specific safe failure copy",
+            "passed": true
+          },
+          {
+            "name": "restore refresh and manual cache never wake",
+            "passed": true
+          },
+          {
+            "name": "no unknown URL allowed",
+            "passed": true
+          }
+        ],
+        "counts": {
+          "GET /vehicles": 1,
+          "GET /vehicles/TEST0000000000001/snapshot": 1
+        },
+        "limits": "Synthetic URLProtocol only; no real Tesla, browser, Keychain or server atomicity proof. Cancellation test uses URLSession cancellation, not forced delivery after cancellation.",
+        "result": "pass",
+        "scenario": "no-cache",
+        "screenshots": [
+          "account",
+          "terminal"
+        ],
+        "synthetic": true
+      }
+    },
+    {
+      "scenario": "unknown404",
+      "result": "pass",
+      "report": {
+        "assertions": [
+          {
+            "name": "initialization does not access network",
+            "passed": true
+          },
+          {
+            "name": "real scene key window active",
+            "passed": true
+          },
+          {
+            "name": "restored session has no automatic requests",
+            "passed": true
+          },
+          {
+            "name": "cache request exactly once",
+            "passed": true
+          },
+          {
+            "name": "no reading on failure",
+            "passed": true
+          },
+          {
+            "name": "only exact cache miss gets no-cache flag",
+            "passed": true
+          },
+          {
+            "name": "readFailed classification",
+            "passed": true
+          },
+          {
+            "name": "specific safe failure copy",
+            "passed": true
+          },
+          {
+            "name": "restore refresh and manual cache never wake",
+            "passed": true
+          },
+          {
+            "name": "no unknown URL allowed",
+            "passed": true
+          }
+        ],
+        "counts": {
+          "GET /vehicles": 1,
+          "GET /vehicles/TEST0000000000001/snapshot": 1
+        },
+        "limits": "Synthetic URLProtocol only; no real Tesla, browser, Keychain or server atomicity proof. Cancellation test uses URLSession cancellation, not forced delivery after cancellation.",
+        "result": "pass",
+        "scenario": "unknown404",
+        "screenshots": [
+          "account",
+          "terminal"
+        ],
+        "synthetic": true
+      }
+    },
+    {
+      "scenario": "429",
+      "result": "pass",
+      "report": {
+        "assertions": [
+          {
+            "name": "initialization does not access network",
+            "passed": true
+          },
+          {
+            "name": "real scene key window active",
+            "passed": true
+          },
+          {
+            "name": "restored session has no automatic requests",
+            "passed": true
+          },
+          {
+            "name": "cache request exactly once",
+            "passed": true
+          },
+          {
+            "name": "no reading on failure",
+            "passed": true
+          },
+          {
+            "name": "only exact cache miss gets no-cache flag",
+            "passed": true
+          },
+          {
+            "name": "readFailed classification",
+            "passed": true
+          },
+          {
+            "name": "specific safe failure copy",
+            "passed": true
+          },
+          {
+            "name": "restore refresh and manual cache never wake",
+            "passed": true
+          },
+          {
+            "name": "no unknown URL allowed",
+            "passed": true
+          }
+        ],
+        "counts": {
+          "GET /vehicles": 1,
+          "GET /vehicles/TEST0000000000001/snapshot": 1
+        },
+        "limits": "Synthetic URLProtocol only; no real Tesla, browser, Keychain or server atomicity proof. Cancellation test uses URLSession cancellation, not forced delivery after cancellation.",
+        "result": "pass",
+        "scenario": "429",
+        "screenshots": [
+          "account",
+          "terminal"
+        ],
+        "synthetic": true
+      }
+    },
+    {
+      "scenario": "network",
+      "result": "pass",
+      "report": {
+        "assertions": [
+          {
+            "name": "initialization does not access network",
+            "passed": true
+          },
+          {
+            "name": "real scene key window active",
+            "passed": true
+          },
+          {
+            "name": "restored session has no automatic requests",
+            "passed": true
+          },
+          {
+            "name": "cache request exactly once",
+            "passed": true
+          },
+          {
+            "name": "no reading on failure",
+            "passed": true
+          },
+          {
+            "name": "only exact cache miss gets no-cache flag",
+            "passed": true
+          },
+          {
+            "name": "readFailed classification",
+            "passed": true
+          },
+          {
+            "name": "specific safe failure copy",
+            "passed": true
+          },
+          {
+            "name": "restore refresh and manual cache never wake",
+            "passed": true
+          },
+          {
+            "name": "no unknown URL allowed",
+            "passed": true
+          }
+        ],
+        "counts": {
+          "GET /vehicles": 1,
+          "GET /vehicles/TEST0000000000001/snapshot": 1
+        },
+        "limits": "Synthetic URLProtocol only; no real Tesla, browser, Keychain or server atomicity proof. Cancellation test uses URLSession cancellation, not forced delivery after cancellation.",
+        "result": "pass",
+        "scenario": "network",
+        "screenshots": [
+          "account",
+          "terminal"
+        ],
+        "synthetic": true
+      }
+    },
+    {
+      "scenario": "decode",
+      "result": "pass",
+      "report": {
+        "assertions": [
+          {
+            "name": "initialization does not access network",
+            "passed": true
+          },
+          {
+            "name": "real scene key window active",
+            "passed": true
+          },
+          {
+            "name": "restored session has no automatic requests",
+            "passed": true
+          },
+          {
+            "name": "cache request exactly once",
+            "passed": true
+          },
+          {
+            "name": "no reading on failure",
+            "passed": true
+          },
+          {
+            "name": "only exact cache miss gets no-cache flag",
+            "passed": true
+          },
+          {
+            "name": "readFailed classification",
+            "passed": true
+          },
+          {
+            "name": "specific safe failure copy",
+            "passed": true
+          },
+          {
+            "name": "restore refresh and manual cache never wake",
+            "passed": true
+          },
+          {
+            "name": "no unknown URL allowed",
+            "passed": true
+          }
+        ],
+        "counts": {
+          "GET /vehicles": 1,
+          "GET /vehicles/TEST0000000000001/snapshot": 1
+        },
+        "limits": "Synthetic URLProtocol only; no real Tesla, browser, Keychain or server atomicity proof. Cancellation test uses URLSession cancellation, not forced delivery after cancellation.",
+        "result": "pass",
+        "scenario": "decode",
+        "screenshots": [
+          "account",
+          "terminal"
+        ],
+        "synthetic": true
+      }
+    },
+    {
+      "scenario": "deadline-reading",
+      "result": "pass",
+      "report": {
+        "assertions": [
+          {
+            "name": "initialization does not access network",
+            "passed": true
+          },
+          {
+            "name": "real scene key window active",
+            "passed": true
+          },
+          {
+            "name": "fresh sign-in saves local session",
+            "passed": true
+          },
+          {
+            "name": "auth start exchange session exactly once",
+            "passed": true
+          },
+          {
+            "name": "duplicate connect does not restart authentication",
+            "passed": true
+          },
+          {
+            "name": "deadline fixture reaches reading after delayed wake and confirmation",
+            "passed": true
+          },
+          {
+            "name": "hard deadline ends reading at approximately sixty seconds",
+            "passed": true
+          },
+          {
+            "name": "deadline terminal has no spinner or active sync",
+            "passed": true
+          },
+          {
+            "name": "deadline never publishes live data",
+            "passed": true
+          },
+          {
+            "name": "deadline has exactly one wake confirmation and probe",
+            "passed": true
+          },
+          {
+            "name": "deadline explains no new vehicle data",
+            "passed": true
+          },
+          {
+            "name": "cancelled delayed probe cannot overwrite terminal or replay",
+            "passed": true
+          },
+          {
+            "name": "exactly one login-sync dispatch",
+            "passed": true
+          },
+          {
+            "name": "terminal state has no second wake dispatch",
+            "passed": true
+          },
+          {
+            "name": "no unknown URL allowed",
+            "passed": true
+          }
+        ],
+        "counts": {
+          "GET /session": 1,
+          "GET /vehicles": 2,
+          "POST /auth/exchange": 1,
+          "POST /auth/start": 1,
+          "POST /vehicles/TEST0000000000001/login-sync": 1,
+          "POST /vehicles/TEST0000000000001/probe": 1
+        },
+        "limits": "Synthetic URLProtocol only; no real Tesla, browser, Keychain or server atomicity proof. Cancellation test uses URLSession cancellation, not forced delivery after cancellation.",
+        "result": "pass",
+        "scenario": "deadline-reading",
+        "screenshots": [
+          "account",
+          "deadline-reading",
+          "deadline-terminal",
+          "terminal"
+        ],
+        "synthetic": true
+      }
+    },
+    {
+      "scenario": "denied",
+      "result": "pass",
+      "report": {
+        "assertions": [
+          {
+            "name": "initialization does not access network",
+            "passed": true
+          },
+          {
+            "name": "real scene key window active",
+            "passed": true
+          },
+          {
+            "name": "fresh sign-in saves local session",
+            "passed": true
+          },
+          {
+            "name": "auth start exchange session exactly once",
+            "passed": true
+          },
+          {
+            "name": "duplicate connect does not restart authentication",
+            "passed": true
+          },
+          {
+            "name": "wake denied is explicit terminal",
+            "passed": true
+          },
+          {
+            "name": "wake denied has no confirmation or probe",
+            "passed": true
+          },
+          {
+            "name": "wake denied never retries automatically",
+            "passed": true
+          },
+          {
+            "name": "exactly one login-sync dispatch",
+            "passed": true
+          },
+          {
+            "name": "terminal state has no second wake dispatch",
+            "passed": true
+          },
+          {
+            "name": "no unknown URL allowed",
+            "passed": true
+          }
+        ],
+        "counts": {
+          "GET /session": 1,
+          "GET /vehicles": 1,
+          "POST /auth/exchange": 1,
+          "POST /auth/start": 1,
+          "POST /vehicles/TEST0000000000001/login-sync": 1
+        },
+        "limits": "Synthetic URLProtocol only; no real Tesla, browser, Keychain or server atomicity proof. Cancellation test uses URLSession cancellation, not forced delivery after cancellation.",
+        "result": "pass",
+        "scenario": "denied",
+        "screenshots": [
+          "account",
+          "terminal"
+        ],
+        "synthetic": true
+      }
+    },
+    {
+      "scenario": "confirmation-error",
+      "result": "pass",
+      "report": {
+        "assertions": [
+          {
+            "name": "initialization does not access network",
+            "passed": true
+          },
+          {
+            "name": "real scene key window active",
+            "passed": true
+          },
+          {
+            "name": "fresh sign-in saves local session",
+            "passed": true
+          },
+          {
+            "name": "auth start exchange session exactly once",
+            "passed": true
+          },
+          {
+            "name": "duplicate connect does not restart authentication",
+            "passed": true
+          },
+          {
+            "name": "confirmation HTTP429 is failure not timeout",
+            "passed": true
+          },
+          {
+            "name": "confirmation error has one failed check and zero probes",
+            "passed": true
+          },
+          {
+            "name": "confirmation error never retries or re-wakes",
+            "passed": true
+          },
+          {
+            "name": "exactly one login-sync dispatch",
+            "passed": true
+          },
+          {
+            "name": "terminal state has no second wake dispatch",
+            "passed": true
+          },
+          {
+            "name": "no unknown URL allowed",
+            "passed": true
+          }
+        ],
+        "counts": {
+          "GET /session": 1,
+          "GET /vehicles": 2,
+          "POST /auth/exchange": 1,
+          "POST /auth/start": 1,
+          "POST /vehicles/TEST0000000000001/login-sync": 1
+        },
+        "limits": "Synthetic URLProtocol only; no real Tesla, browser, Keychain or server atomicity proof. Cancellation test uses URLSession cancellation, not forced delivery after cancellation.",
+        "result": "pass",
+        "scenario": "confirmation-error",
+        "screenshots": [
+          "account",
+          "terminal"
+        ],
+        "synthetic": true
+      }
+    }
+  ],
+  "result": "pass"
+}

@@ -18,6 +18,12 @@ public enum ReadOnlyVehicleDataError: String, Error, Sendable, LocalizedError {
 public struct ReadOnlyVehicleIdentity: Codable, Sendable {
     public let vin: String
     public let display_name: String?
+    /// Presentation-only name; the raw backend value remains unchanged for Codable.
+    public var normalizedDisplayName: String? {
+        guard let name = display_name?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !name.isEmpty else { return nil }
+        return name
+    }
     /// Unknown states are preserved verbatim; only the exact value `online` means online.
     public let state: String?
 }
@@ -88,6 +94,11 @@ public struct ReadOnlyVehicleData: Sendable {
     public let cacheStale: Bool?
     /// Deliberately empty even if the backend reports pairing/capability information.
     public var supportedQuickControls: Set<QuickControl> { [] }
+
+    /// Missing, future or unknown states are not evidence that the vehicle is offline.
+    public var hasConfirmedNonOnlineState: Bool {
+        origin == .noLiveData && (vehicle.state == "offline" || vehicle.state == "asleep")
+    }
 
     public func sourceTimestamp(for section: Section) -> Date? {
         let milliseconds: Double?
@@ -214,5 +225,32 @@ public enum ReadOnlyVehicleDataDecoder {
                 throw ReadOnlyVehicleDataError.invalidTimestamp
             }
         }
+    }
+}
+
+/// Narrow snapshot-error recognition. Never returns or exposes upstream message text.
+public enum NativeSnapshotErrorClassifier {
+    public static let maximumBodyBytes = 1_048_576
+
+    public static func acceptsBody(method: String, path: String, status: Int) -> Bool {
+        guard method == "GET", status == 404 else { return false }
+        let parts = path.split(separator: "/", omittingEmptySubsequences: false)
+        guard parts.count == 7, parts[0].isEmpty, parts[1] == "api", parts[2] == "native",
+              parts[3] == "v1", parts[4] == "vehicles", parts[6] == "snapshot" else { return false }
+        let vin = parts[5]
+        return vin.utf8.count == 17 && vin.utf8.allSatisfy {
+            (48...57).contains($0) || (65...72).contains($0) || (74...78).contains($0)
+                || $0 == 80 || (82...90).contains($0)
+        }
+    }
+
+    public static func isNoCachedVehicleData(method: String, path: String, status: Int,
+                                            mimeType: String?, body: Data) -> Bool {
+        guard acceptsBody(method: method, path: path, status: status),
+              mimeType == "application/json", body.count <= maximumBodyBytes,
+              let object = try? JSONSerialization.jsonObject(with: body),
+              let fields = object as? [String: Any],
+              let error = fields["error"] as? String else { return false }
+        return error == "No cached vehicle data"
     }
 }

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readFile, stat, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { config, Vault, OAuthStates, TeslaClient, AUTH, FLEET, SCOPES, requestJSON } from './core.mjs';
+import { config, Vault, OAuthStates, TeslaClient, AUTH, FLEET, SCOPES, NATIVE_SCOPES, requestJSON } from './core.mjs';
 import { createApp } from './server.mjs';
 
 const settings = { missing: [], clientId: 'test-client', clientSecret: 'test-secret',
@@ -161,3 +161,71 @@ test('callback needs matching browser cookie and rejects replay', async () => wi
   assert.equal(exchanges(), 1);
   assert.equal((await fetch(callback, { headers: { cookie: cookie.split(';')[0] } })).status, 400);
 }));
+
+
+test('native consent alone adds vehicle_cmds; legacy scopes remain read-only', () => {
+  assert.equal(NATIVE_SCOPES, `${SCOPES} vehicle_cmds`);
+  assert.equal(SCOPES.includes('vehicle_cmds'), false);
+});
+
+test('fixed wake dispatch accepts only matching vehicle envelopes; only HTTP403 is denied, never retries or leaks', async () => {
+  const cases = [
+    [() => ok({ response: { vin: testVin, state: 'online' } }), 'wake_accepted'],
+    [() => ok({ response: { vin: testVin, state: 'waking' } }), 'wake_accepted'],
+    [() => ok({ response: { vin: 'LRW3E7FA0NC123457', state: 'online' } }), 'wake_unknown'],
+    [() => ok({ response: { vin: testVin, state: 'secret-state' } }), 'wake_unknown'],
+    [() => ok({ response: true }), 'wake_unknown'],
+    [() => new Response('secret-invalid-json'), 'wake_unknown'],
+    ...[401, 403, 408, 429, 500, 503].map(status => [() => new Response('secret-provider-body', { status }), status === 403 ? 'wake_denied' : 'wake_unknown']),
+    [() => { throw new DOMException('secret-timeout', 'TimeoutError'); }, 'wake_unknown'],
+    [() => { throw new Error('secret-network'); }, 'wake_unknown'],
+    [() => ({ ok: true, json: async () => { throw new Error('secret-body-timeout'); } }), 'wake_unknown'],
+  ];
+  for (const [response, expected] of cases) {
+    let calls = 0;
+    // Bogus unsigned scope metadata is neither required nor used as authorization.
+    const vault = memoryVault({ access_token: 'unsigned.scope.metadata', expires_at: Date.now() + 3600000 });
+    const client = new TeslaClient(settings, vault, async (url, options) => {
+      calls++; assert.equal(url, `${FLEET}/api/1/vehicles/${testVin}/wake_up`);
+      assert.equal(options.method, 'POST'); assert.equal(options.body, '{}');
+      assert.equal(options.redirect, 'error'); assert.ok(options.signal instanceof AbortSignal);
+      assert.equal(options.headers.Authorization, 'Bearer unsigned.scope.metadata');
+      return response();
+    });
+    assert.equal(await client.loginWake(testVin), expected); assert.equal(calls, 1);
+  }
+});
+
+test('wake uses existing20s requestJSON timeout and never refresh-replays after dispatch', async () => {
+  const timeout = AbortSignal.timeout; const durations = []; let calls = 0;
+  AbortSignal.timeout = ms => { durations.push(ms); return timeout(ms); };
+  try {
+    const client = new TeslaClient(settings, memoryVault({ access_token: 'expired', refresh_token: 'refresh', expires_at: 0 }), async url => {
+      calls++;
+      if (url === `${AUTH}/token`) return ok({ access_token: 'fresh', refresh_token: 'rotated', expires_in: 3600 });
+      assert.equal(url, `${FLEET}/api/1/vehicles/${testVin}/wake_up`);
+      return new Response('secret', { status: 401 });
+    });
+    assert.equal(await client.loginWake(testVin), 'wake_unknown');
+    assert.equal(calls, 2); assert.deepEqual(durations, [20000, 20000]);
+  } finally { AbortSignal.timeout = timeout; }
+});
+
+
+test('wake timeout abort is unknown, and token-refresh403 before wake is not misreported as wake denial', async () => {
+  const timeout = AbortSignal.timeout; let calls = 0;
+  const keepAlive = setTimeout(() => {}, 1000);
+  AbortSignal.timeout = ms => { assert.equal(ms, 20000); return timeout(5); };
+  try {
+    const client = new TeslaClient(settings, memoryVault({ access_token: 'fresh', expires_at: Date.now() + 3600000 }), async (url, options) => {
+      calls++; assert.ok(url.endsWith('/wake_up'));
+      return new Promise((resolve, reject) => options.signal.addEventListener('abort', () => reject(options.signal.reason), { once: true }));
+    });
+    assert.equal(await client.loginWake(testVin), 'wake_unknown'); assert.equal(calls, 1);
+  } finally { AbortSignal.timeout = timeout; clearTimeout(keepAlive); }
+  const urls = [];
+  const expired = new TeslaClient(settings, memoryVault({ access_token: 'old', refresh_token: 'old-refresh', expires_at: 0 }), async url => {
+    urls.push(url); return new Response('secret', { status: 403 });
+  });
+  assert.equal(await expired.loginWake(testVin), 'wake_unknown'); assert.deepEqual(urls, [`${AUTH}/token`]);
+});

@@ -44,22 +44,22 @@ struct PonyTabs: View {
     }
     var body: some View {
         TabView(selection: selected) {
-            Tab("车辆", systemImage: "car", value: .vehicle) { NavigationStack { if account.hasLocalSession { NativeVehicleStatusView() } else { VehicleView() } }.id(account.hasLocalSession) }
-            Tab("行程", systemImage: "point.topleft.down.to.point.bottomright.curvepath", value: .trips) { NavigationStack { if account.hasLocalSession { NativeTripsHistoryView() } else { TripsView() } }.id(account.hasLocalSession) }
-            Tab("充电", systemImage: "bolt", value: .charging) { NavigationStack { if account.hasLocalSession { NativeChargingStatusView() } else { ChargingView() } }.id(account.hasLocalSession) }
+            Tab("车辆", systemImage: "car", value: .vehicle) { NavigationStack { if account.usesNativePresentation { NativeVehicleStatusView() } else { VehicleView() } }.id(account.usesNativePresentation) }
+            Tab("行程", systemImage: "point.topleft.down.to.point.bottomright.curvepath", value: .trips) { NavigationStack { if account.usesNativePresentation { NativeTripsHistoryView() } else { TripsView() } }.id(account.usesNativePresentation) }
+            Tab("充电", systemImage: "bolt", value: .charging) { NavigationStack { if account.usesNativePresentation { NativeChargingStatusView() } else { ChargingView() } }.id(account.usesNativePresentation) }
             Tab("我的", systemImage: "person.crop.circle", value: .profile) { NavigationStack { ProfileView() } }
         }
         .tabViewStyle(.sidebarAdaptable)
         .tabBarMinimizeBehavior(.onScrollDown)
         .task {
-            if !account.hasLocalSession { await store.refresh() }
+            if !account.usesNativePresentation { await store.refresh() }
             while !Task.isCancelled {
                 do { try await Task.sleep(for: .seconds(15)) } catch { return }
-                if scenePhase == .active && !account.hasLocalSession { store.tick() }
+                if scenePhase == .active && !account.usesNativePresentation { store.tick() }
             }
         }
         .onChange(of: scenePhase) { _, next in
-            if next == .active && !account.hasLocalSession { store.tick(); Task { if !account.hasLocalSession { await store.refresh() } } }
+            if next == .active && !account.usesNativePresentation { store.tick(); Task { if !account.usesNativePresentation { await store.refresh() } } }
         }
         .alert(store.message?.title ?? "", isPresented: Binding(get: { store.message != nil }, set: { if !$0 { store.message = nil } })) {
             Button("知道了", role: .cancel) { store.message = nil }

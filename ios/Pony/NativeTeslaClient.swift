@@ -8,7 +8,7 @@ import Security
 enum NativeTeslaError: Error, LocalizedError, Sendable {
     case randomUnavailable, keychainUnavailable, invalidCallback, invalidResponse
     case cancelled, authenticationFailed, signInRequired, unavailable, rateLimited
-    case responseTooLarge, networkUnavailable, accountDeletionUnavailable
+    case responseTooLarge, networkUnavailable, accountDeletionUnavailable, noCachedVehicleData
 
     var errorDescription: String? {
         switch self {
@@ -23,6 +23,7 @@ enum NativeTeslaError: Error, LocalizedError, Sendable {
         case .responseTooLarge: "服务器返回的数据过大。"
         case .networkUnavailable: "无法连接服务器，请检查网络。"
         case .accountDeletionUnavailable: "暂不支持注销账号，服务器数据未删除。"
+        case .noCachedVehicleData: "服务器暂无已保存的车况数据。"
         }
     }
 }
@@ -71,7 +72,7 @@ enum NativeTeslaCallback {
     }
 }
 
-private struct NativeStoredSession: Codable, Sendable {
+struct NativeStoredSession: Codable, Sendable {
     let access: String
     let refresh: String
     let expiresAt: Date
@@ -83,6 +84,18 @@ private struct NativeStoredSession: Codable, Sendable {
             && UUID(uuidString: accountID) != nil && expiresAt.timeIntervalSince1970.isFinite
             && refreshExpiresAt.timeIntervalSince1970.isFinite && expiresAt <= refreshExpiresAt
     }
+}
+
+@MainActor protocol NativeSessionStorage {
+    func load() throws -> NativeStoredSession?
+    func save(_ session: NativeStoredSession) throws
+    func clear() throws
+}
+
+private struct KeychainSessionStorage: NativeSessionStorage {
+    func load() throws -> NativeStoredSession? { try NativeSessionKeychain.load() }
+    func save(_ session: NativeStoredSession) throws { try NativeSessionKeychain.save(session) }
+    func clear() throws { try NativeSessionKeychain.clear() }
 }
 
 private enum NativeSessionKeychain {
@@ -152,7 +165,8 @@ private enum NativeTransport {
     }
 
     static func send(path: String, method: String = "GET", body: Data? = nil,
-                     bearer: String? = nil, queryItems: [URLQueryItem] = []) async throws -> Data {
+                     bearer: String? = nil, queryItems: [URLQueryItem] = [],
+                     configuration injectedConfiguration: URLSessionConfiguration? = nil) async throws -> Data {
         guard path.hasPrefix(prefix + "/"), !path.contains("?"), !path.contains("#"),
               var components = URLComponents(string: origin + path) else { throw NativeTeslaError.invalidResponse }
         if !queryItems.isEmpty { components.queryItems = queryItems }
@@ -169,7 +183,7 @@ private enum NativeTransport {
             guard NativeTeslaPKCE.isOpaque(bearer) else { throw NativeTeslaError.signInRequired }
             request.setValue("Bearer " + bearer, forHTTPHeaderField: "Authorization")
         }
-        let configuration = URLSessionConfiguration.ephemeral
+        let configuration = injectedConfiguration ?? URLSessionConfiguration.ephemeral
         configuration.urlCache = nil
         configuration.httpCookieStorage = nil
         configuration.httpShouldSetCookies = false
@@ -179,18 +193,26 @@ private enum NativeTransport {
         configuration.timeoutIntervalForResource = 45
         let session = URLSession(configuration: configuration, delegate: NativeRedirectPolicy(), delegateQueue: nil)
         defer { session.invalidateAndCancel() }
+        return try await withTaskCancellationHandler {
         do {
+            try Task.checkCancellation()
             let (bytes, response) = try await session.bytes(for: request)
             defer { bytes.task.cancel() }
             guard let http = response as? HTTPURLResponse, http.url == url else { throw NativeTeslaError.invalidResponse }
+            let snapshotNotFound = NativeSnapshotErrorClassifier.acceptsBody(
+                method: method, path: path, status: http.statusCode) && queryItems.isEmpty
             switch http.statusCode {
             case 200: break
+            case 404 where snapshotNotFound: break
             case 401: throw NativeTeslaError.signInRequired
             case 429: throw NativeTeslaError.rateLimited
             default: throw NativeTeslaError.unavailable
             }
-            guard http.mimeType == "application/json" else { throw NativeTeslaError.invalidResponse }
-            let limit = 1_048_576
+            guard http.mimeType == "application/json" else {
+                // A non-JSON 404 remains an unknown service failure, never cache evidence.
+                throw snapshotNotFound ? NativeTeslaError.unavailable : NativeTeslaError.invalidResponse
+            }
+            let limit = NativeSnapshotErrorClassifier.maximumBodyBytes
             guard response.expectedContentLength <= Int64(limit) else { throw NativeTeslaError.responseTooLarge }
             var data = Data()
             for try await byte in bytes {
@@ -198,15 +220,32 @@ private enum NativeTransport {
                 guard data.count < limit else { throw NativeTeslaError.responseTooLarge }
                 data.append(byte)
             }
+            if snapshotNotFound {
+                guard NativeSnapshotErrorClassifier.isNoCachedVehicleData(method: method, path: path,
+                    status: http.statusCode, mimeType: http.mimeType, body: data) else {
+                    // Unknown/malformed 404 bodies are not evidence of a cache miss.
+                    throw NativeTeslaError.unavailable
+                }
+                throw NativeTeslaError.noCachedVehicleData
+            }
             return data
         } catch let error as NativeTeslaError { throw error }
         catch is CancellationError { throw NativeTeslaError.cancelled }
         catch { throw Task.isCancelled ? NativeTeslaError.cancelled : NativeTeslaError.networkUnavailable }
+        } onCancel: {
+            // Also cancel a streaming body after headers; task cancellation alone is insufficient.
+            session.invalidateAndCancel()
+        }
     }
 }
 
+@MainActor protocol NativeLoginBrowser: AnyObject {
+    func open(_ url: URL) async throws -> URL
+    func cancel()
+}
+
 @MainActor
-private final class NativeAuthBrowser: NSObject, ASWebAuthenticationPresentationContextProviding {
+private final class NativeAuthBrowser: NSObject, ASWebAuthenticationPresentationContextProviding, NativeLoginBrowser {
     private let anchor: ASPresentationAnchor
     private var session: ASWebAuthenticationSession?
     private var continuation: CheckedContinuation<URL, any Error>?
@@ -261,6 +300,7 @@ struct NativeTeslaFeatures: Decodable, Sendable {
     let telemetry: Bool
     let charge_history: Bool
     let trips: Bool
+    var login_sync: Bool? = nil
     /// Server capability hints never enable control APIs in this client.
     var supportedQuickControls: Set<QuickControl> { [] }
 }
@@ -302,12 +342,40 @@ final class NativeTeslaClient: NativeHistoryFetching {
         }
     }
     private var credentials: NativeStoredSession?
-    private var browser: NativeAuthBrowser?
+    private var browser: (any NativeLoginBrowser)?
     private var signingIn = false
     private var refreshTask: Task<NativeStoredSession, any Error>?
     private var generation = UUID()
 
-    init() throws { credentials = try NativeSessionKeychain.load() }
+    typealias Send = @MainActor (String, String, Data?, String?, [URLQueryItem]) async throws -> Data
+    private let storage: any NativeSessionStorage
+    private let send: Send
+    private let makeBrowser: @MainActor (ASPresentationAnchor) -> any NativeLoginBrowser
+
+    convenience init() throws {
+        try self.init(storage: KeychainSessionStorage(), send: { path, method, body, bearer, query in
+            try await NativeTransport.send(path: path, method: method, body: body, bearer: bearer, queryItems: query)
+        }, makeBrowser: { NativeAuthBrowser(anchor: $0) })
+    }
+
+    /// Dependency injection only; production always uses the fixed HTTPS transport and Keychain.
+    init(storage: any NativeSessionStorage, send: @escaping Send,
+         makeBrowser: @escaping @MainActor (ASPresentationAnchor) -> any NativeLoginBrowser) throws {
+        self.storage = storage; self.send = send; self.makeBrowser = makeBrowser
+        credentials = try storage.load()
+    }
+    /// Harness can install URLProtocol on an isolated ephemeral configuration. All URL,
+    /// status, MIME, size, snapshot-error and decoder checks remain the production path.
+    convenience init(storage: any NativeSessionStorage, configuration: URLSessionConfiguration,
+                     makeBrowser: @escaping @MainActor (ASPresentationAnchor) -> any NativeLoginBrowser) throws {
+        try self.init(storage: storage, send: { path, method, body, bearer, query in
+            try await NativeTransport.send(path: path, method: method, body: body, bearer: bearer,
+                                           queryItems: query, configuration: configuration)
+        }, makeBrowser: makeBrowser)
+    }
+    var accountID: String? { credentials?.accountID }
+    func cancelPendingLogin() { generation = UUID(); browser?.cancel() }
+
     var hasLocalSession: Bool { credentials != nil }
 
     func signIn(anchor: ASPresentationAnchor) async throws {
@@ -331,7 +399,7 @@ final class NativeTeslaClient: NativeHistoryFetching {
               let request = items[0].value, NativeTeslaPKCE.isOpaque(request) else {
             throw NativeTeslaError.invalidResponse
         }
-        let browser = NativeAuthBrowser(anchor: anchor)
+        let browser = makeBrowser(anchor)
         self.browser = browser
         let callback = try await browser.open(url)
         guard attempt == generation else { throw NativeTeslaError.cancelled }
@@ -340,7 +408,7 @@ final class NativeTeslaClient: NativeHistoryFetching {
             "code_verifier": verifier, "callback": NativeTeslaCallback.absolute])
         guard attempt == generation else { throw NativeTeslaError.cancelled }
         let session = try tokens.stored(at: Date())
-        try NativeSessionKeychain.save(session)
+        try storage.save(session)
         credentials = session
     }
 
@@ -365,6 +433,17 @@ final class NativeTeslaClient: NativeHistoryFetching {
         try validateVIN(vin)
         let data = try await authenticated("/vehicles/\(vin)/probe", method: "POST")
         return try ReadOnlyVehicleDataDecoder.decodeProbe(data, expectedVIN: vin, receivedAt: Date())
+    }
+
+    enum LoginSyncPhase: String, Decodable, Sendable {
+        case online, wake_accepted, wake_unknown, wake_denied, not_eligible
+    }
+    func loginSync(vin: String) async throws -> LoginSyncPhase {
+        struct Reply: Decodable { let vin: String; let phase: LoginSyncPhase }
+        try validateVIN(vin)
+        let reply: Reply = try decode(await authenticated("/vehicles/\(vin)/login-sync", method: "POST"))
+        guard reply.vin == vin else { throw NativeTeslaError.invalidResponse }
+        return reply.phase
     }
 
     func snapshot(vin: String) async throws -> ReadOnlyVehicleData {
@@ -411,7 +490,7 @@ final class NativeTeslaClient: NativeHistoryFetching {
         refreshTask = nil
         let old = credentials
         credentials = nil
-        try NativeSessionKeychain.clear()
+        try storage.clear()
         var revoked = false
         if let old {
             // Never replay a credential whose in-flight rotation may already have reached the server.
@@ -423,8 +502,7 @@ final class NativeTeslaClient: NativeHistoryFetching {
                     access = rotated.access
                 }
             }
-            if let data = try? await NativeTransport.send(path: NativeTransport.prefix + "/auth/logout",
-                method: "POST", body: Data("{}".utf8), bearer: access),
+            if let data = try? await send(NativeTransport.prefix + "/auth/logout", "POST", Data("{}".utf8), access, []),
                let reply: Reply = try? decode(data), reply.logged_out, !reply.tesla_revoked, !reply.data_deleted {
                 revoked = true
             }
@@ -442,8 +520,9 @@ final class NativeTeslaClient: NativeHistoryFetching {
         let session = try await validSession()
         guard generation == attempt else { throw NativeTeslaError.cancelled }
         do {
-            let data = try await NativeTransport.send(path: NativeTransport.prefix + path, method: method,
-                body: method == "POST" ? Data("{}".utf8) : nil, bearer: session.access, queryItems: queryItems)
+            let data = try await send(NativeTransport.prefix + path, method,
+                method == "POST" ? Data("{}".utf8) : nil, session.access, queryItems)
+            try Task.checkCancellation()
             guard generation == attempt else { throw NativeTeslaError.cancelled }
             return data
         } catch NativeTeslaError.signInRequired {
@@ -461,7 +540,10 @@ final class NativeTeslaClient: NativeHistoryFetching {
             try invalidateSession()
             throw NativeTeslaError.signInRequired
         }
-        if let refreshTask { return try await refreshTask.value }
+        if let refreshTask {
+            return try await withTaskCancellationHandler { try await refreshTask.value }
+                onCancel: { refreshTask.cancel() }
+        }
         let attempt = generation
         let task = Task { @MainActor () async throws -> NativeStoredSession in
             let tokens: Tokens = try await self.post("/auth/refresh", ["refresh_token": old.refresh])
@@ -469,13 +551,16 @@ final class NativeTeslaClient: NativeHistoryFetching {
             guard self.generation == attempt else { throw NativeTeslaError.cancelled }
             let updated = try tokens.stored(at: Date())
             guard updated.accountID == old.accountID else { throw NativeTeslaError.invalidResponse }
-            try NativeSessionKeychain.save(updated)
+            try self.storage.save(updated)
             self.credentials = updated
             return updated
         }
         refreshTask = task
         defer { if generation == attempt { refreshTask = nil } }
-        do { return try await task.value }
+        do {
+            return try await withTaskCancellationHandler { try await task.value }
+                onCancel: { task.cancel() }
+        }
         catch {
             // An ambiguous refresh failure cannot safely replay the old rotating credential.
             if generation == attempt { try invalidateSession() }
@@ -489,13 +574,13 @@ final class NativeTeslaClient: NativeHistoryFetching {
         refreshTask?.cancel()
         refreshTask = nil
         credentials = nil
-        try NativeSessionKeychain.clear()
+        try storage.clear()
     }
 
     private func post<T: Decodable>(_ path: String, _ fields: [String: String]) async throws -> T {
         let body = try JSONEncoder().encode(fields)
         do {
-            return try decode(await NativeTransport.send(path: NativeTransport.prefix + path, method: "POST", body: body))
+            return try decode(await send(NativeTransport.prefix + path, "POST", body, nil, []))
         } catch NativeTeslaError.signInRequired {
             switch path {
             case "/auth/start": throw NativeTeslaError.unavailable
